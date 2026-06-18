@@ -1384,6 +1384,8 @@ function updateCorridorInfo(){
 }
 
 // ════ 계산 메인 ════
+// [v23] 지점부 부모멘트 보정계수 — calc()/renderBeam()/getOkBotSections() 공통 사용을 위해 전역 스코프에 선언
+const MNEG_CAL_FACTOR = 0.65;
 function calc(){
   const Lx=+gv('Lx'), Ly=+gv('Ly'), Hz=+gv('Hz'), nF=+gv('nFloor');
   const Lc=+(document.getElementById('Lc')||{value:2400}).value||2400;
@@ -1528,7 +1530,7 @@ function calc(){
   //  ⚠ 주의: 이 계수는 "코드에서 인정하는 모멘트 재분배 허용치"가 아니라, 동일 스펙 실제 검증사례에
   //  맞춘 경험적 보정값임. 다른 스팬/하중 조건에서는 정확도가 다를 수 있으므로, 본 프로그램은 제안서
   //  작성 단계의 참고용이며 최종 구조계산은 반드시 구조기술사 검토를 받아야 함(화면에도 명시됨).
-  const MNEG_CAL_FACTOR = 0.65;
+  // (MNEG_CAL_FACTOR는 calc()/renderBeam()/getOkBotSections() 공통 사용을 위해 전역 스코프(파일 상단)에서 선언됨)
   function continuousBotY(Ly_, Lc_, wu_, ws_, trib){
     if(corridorType==='none' || Lc_<=0){
       const compU = compositePhiMn(Ly_, trib);
