@@ -204,7 +204,7 @@ td.left-td{text-align:left;}
       <div style="margin-top:10px;padding-top:10px;border-top:1px dashed #ccc;">
         <label style="display:block;margin-bottom:4px;">🗺️ 지도에서 위치 확인 / 깃발 이동으로 지역 자동 설정</label>
         <div style="display:flex;gap:6px;margin-bottom:6px;">
-          <input id="kakaoKeyInput" type="text" placeholder="카카오 JavaScript 키 입력 (developers.kakao.com 무료 발급)" style="flex:1;font-size:11px;padding:5px;">
+          <input id="kakaoKeyInput" type="text" value="1925be5b36e4f8790965a731534f6efb" placeholder="카카오 JavaScript 키 입력 (developers.kakao.com 무료 발급)" style="flex:1;font-size:11px;padding:5px;">
           <button type="button" onclick="loadKakaoSDK()" style="font-size:11px;padding:5px 10px;white-space:nowrap;">지도 활성화</button>
         </div>
         <div id="kakaoMap" style="width:100%;height:240px;border:1px solid #ccc;border-radius:4px;background:#f3f3f3;display:flex;align-items:center;justify-content:center;color:#888;font-size:11px;">키 입력 후 [지도 활성화]를 누르면 지도가 표시됩니다</div>
@@ -2215,4 +2215,268 @@ function getOkTopSections(){
     const dX=r.WsTopX*(r.Lx**4)/(384*E*s.Ix);
     const maxDC=Math.max(r.Mu_TopY/phiMn,r.Vu_TopY/phiVn,dY/r.dallow_TopY,
                          r.Mu_TopX/phiMn,r.Vu_TopX/phiVn,dX/r.dallow_TopX);
-    return maxDC<1.
+    return maxDC<1.0?{key,label:s.label,maxDC,A:s.A}:null;
+  }).filter(Boolean).sort((a,b)=>a.A-b.A);
+}
+
+function getOkBotSections(){
+  // [v19] 하부보는 기둥 핀접합(항상 단순지지) + 합성보 φMn 기준으로 추천 단면 산정
+  const r=lastR;
+  if(!r.Lx) return [];
+  return GIR_SECS.map(key=>{
+    const s=SEC[key]; if(!s) return null;
+    const hw=s.d-2*s.tf, Aw=s.d*s.tw;
+    const lim=2.24*Math.sqrt(E/r.FyB);
+    const phiv=(hw/s.tw<=lim)?1.0:0.9;
+    const T=s.A*r.FyB;
+    const phiMnBare=0.9*r.FyB*s.Zx/1e6;
+    function phiMnComposite(span,trib){
+      const beff=Math.min(span/4,trib);
+      const a=T/(0.85*r.fck*beff);
+      if(a>=r.tS) return phiMnBare;
+      const ybar=s.d/2+r.tS-a/2;
+      return 0.9*T*ybar/1e6;
+    }
+    // [v22] 추천 단면 평가도 메인 계산과 동일하게 합성 환산단면2차모멘트(Itr) 사용 (강재단독 Ix → Itr)
+    const Ec_r = 4700*Math.sqrt(r.fck), nMod_r = E/Ec_r;
+    function ItrComposite(span,trib){
+      const beff=Math.min(span/4,trib);
+      const Atr=beff*r.tS/nMod_r;
+      const yS=s.d/2, ySl=s.d+r.tS/2;
+      const At=s.A+Atr;
+      const yBar=(s.A*yS+Atr*ySl)/At;
+      return s.Ix + s.A*(yBar-yS)**2 + Atr*r.tS*r.tS/12 + Atr*(yBar-ySl)**2;
+    }
+    const phiVn=phiv*0.6*r.FyB*Aw/1e3;
+    const Ly_=r.Ly, Lc_=r.Lc, wu_=r.WuBotY, ws_=r.WsBotY, dN=r.deflectLimitN;
+    // [v20] Y방향: 후보 단면별로도 동일한 연속보(3연모멘트법) 모델로 재계산
+    let maxDC_Y;
+    if(r.corridorType==='none' || Lc_<=0){
+      const phiMnY=phiMnComposite(Ly_, r.tribBotY*1000);
+      const ItrY=ItrComposite(Ly_, r.tribBotY*1000);
+      const Mu=wu_*Ly_**2/8/1e6, Vu=wu_*Ly_/2/1e3, d=5*ws_*Ly_**4/(384*E*ItrY);
+      maxDC_Y=Math.max(Mu/phiMnY, Vu/phiVn, d/(Ly_/dN));
+    } else if(r.corridorType==='single'){
+      const Msu=wu_*(Ly_**3+Lc_**3)/(8*(Ly_+Lc_)), Mss=ws_*(Ly_**3+Lc_**3)/(8*(Ly_+Lc_));
+      // [v21] 버그 수정: Rfar(원위단,작음)=wL/2-Ms/L, Rnear(근위단,큼)=wL-Rfar — 기존 R0(=wL/2+Ms/L)는 라벨이 뒤바뀐 값이었음
+      const RfarU=wu_*Ly_/2-Msu/Ly_, RfarC=wu_*Lc_/2-Msu/Lc_;
+      const MposU=Math.max(RfarU*RfarU/(2*wu_),0), MposC=Math.max(RfarC*RfarC/(2*wu_),0);
+      const RnearU=wu_*Ly_-RfarU, RnearC=wu_*Lc_-RfarC;
+      const Vu=Math.max(RnearU+RnearC, RfarU, RfarC)/1e3;
+      const ItrU=ItrComposite(Ly_, r.tribBotY*1000), ItrC=ItrComposite(Lc_, r.tribBotY*1000);
+      const dU=Math.max(5*ws_*Ly_**4/(384*E*ItrU)-Mss*Ly_**2/(16*E*ItrU),0);
+      const dC=Math.max(5*ws_*Lc_**4/(384*E*ItrC)-Mss*Lc_**2/(16*E*ItrC),0);
+      const phiMnU=phiMnComposite(Ly_, r.tribBotY*1000), phiMnC=phiMnComposite(Lc_, r.tribBotY*1000);
+      maxDC_Y=Math.max(MposU/1e6/phiMnU, MposC/1e6/phiMnC, Msu/1e6*MNEG_CAL_FACTOR/phiMnBare, Vu/phiVn,
+                       dU/(Ly_/dN), dC/(Lc_/dN));
+    } else {
+      const Msu=wu_*(Ly_**3+Lc_**3)/(4*(2*Ly_+3*Lc_)), Mss=ws_*(Ly_**3+Lc_**3)/(4*(2*Ly_+3*Lc_));
+      const RfarU=wu_*Ly_/2-Msu/Ly_, RnearU=wu_*Ly_-RfarU, RC=wu_*Lc_/2;
+      const MposU=Math.max(RfarU*RfarU/(2*wu_),0), MposC=Math.max(wu_*Lc_*Lc_/8-Msu,0);
+      const Vu=Math.max(RnearU+RC, RfarU)/1e3;
+      const ItrU=ItrComposite(Ly_, r.tribBotY*1000), ItrC=ItrComposite(Lc_, r.tribBotY*1000);
+      const dU=Math.max(5*ws_*Ly_**4/(384*E*ItrU)-Mss*Ly_**2/(16*E*ItrU),0);
+      const dC=Math.max(5*ws_*Lc_**4/(384*E*ItrC)-Mss*Lc_**2/(8*E*ItrC),0);
+      const phiMnU=phiMnComposite(Ly_, r.tribBotY*1000), phiMnC=phiMnComposite(Lc_, r.tribBotY*1000);
+      maxDC_Y=Math.max(MposU/1e6/phiMnU, MposC/1e6/phiMnC, Msu/1e6*MNEG_CAL_FACTOR/phiMnBare, Vu/phiVn,
+                       dU/(Ly_/dN), dC/(Lc_/dN));
+    }
+    const phiMnX=phiMnComposite(r.Lx, r.tribBotX*1000);
+    const ItrX=ItrComposite(r.Lx, r.tribBotX*1000);
+    const dX=5*r.WsBotX*(r.Lx**4)/(384*E*ItrX);
+    const maxDC_X=Math.max(r.Mu_BotX/phiMnX, r.Vu_BotX/phiVn, dX/r.dallow_BotX);
+    const maxDC=Math.max(maxDC_Y, maxDC_X);
+    return maxDC<1.0?{key,label:s.label,maxDC,A:s.A}:null;
+  }).filter(Boolean).sort((a,b)=>a.A-b.A);
+}
+
+function getOkColSections(){
+  const r=lastR;
+  if(!r.Hz) return [];
+  return COL_SECS.map(key=>{
+    const s=SEC[key]; if(!s) return null;
+    const KLr=r.KL/s.ry;
+    const Fe=Math.PI**2*E/KLr**2;
+    const lim=4.71*Math.sqrt(E/r.FyC);
+    const Fcr=(KLr<=lim)?(0.658**(r.FyC/Fe))*r.FyC:0.877*Fe;
+    const phiPn=0.9*Fcr*s.A/1e3;
+    const ratioP=r.Pu_col/phiPn;
+    // 양단강접 시 보→기둥 단부모멘트 조합응력(H1-1a/b)도 함께 검토 (축력만으로는 NG 원인을 못 잡는 버그 수정)
+    let ratioInter=ratioP;
+    if(r.connType==='fixed' && (r.Mux_col>0||r.Muy_col>0)){
+      const phiMnx=0.9*r.FyC*s.Zx/1e6;
+      const phiMny=0.9*r.FyC*(s.Zy||s.Zx)/1e6;
+      ratioInter = (ratioP>=0.2)
+        ? ratioP + 8/9*(r.Mux_col/phiMnx + r.Muy_col/phiMny)
+        : ratioP/2 + (r.Mux_col/phiMnx + r.Muy_col/phiMny);
+    }
+    const maxDC=Math.max(ratioP,ratioInter);
+    return maxDC<1.0?{key,label:s.label,maxDC,A:s.A}:null;
+  }).filter(Boolean).sort((a,b)=>a.A-b.A);
+}
+
+function applyRecommend(type,key){
+  if(!key) return;
+  const idMap={gir:'secTop',beam:'secBot',col:'secCol'};
+  const el=document.getElementById(idMap[type]);
+  if(el){ el.value=key; calc(); }
+}
+
+function buildNgRecommendHtml(type,sections,hasNg){
+  if(!hasNg) return '';
+  if(!sections.length) return `<div class="ng-recommend"><label>⚠ N.G 발생 — 현재 DB에서 적합한 단면을 찾지 못했습니다. 더 큰 단면을 직접 선택하세요.</label></div>`;
+  return `<div class="ng-recommend">
+    <label>⚠ N.G 발생 — OK 가능한 단면 선택 (${sections.length}개) → 선택하면 자동 재계산:</label>
+    <select onchange="applyRecommend('${type}',this.value)">
+      <option value="">▼ 형강 선택...</option>
+      ${sections.map(s=>`<option value="${s.key}">${s.label}&nbsp;&nbsp;(D/C 최대 ${s.maxDC.toFixed(3)})</option>`).join('')}
+    </select>
+  </div>`;
+}
+
+// ════ 유틸 ════
+function gv(id){return document.getElementById(id).value;}
+function judge(r){
+  if(r<0.75) return '<span class="ok">O.K</span>';
+  if(r<1.00) return '<span class="warn">O.K (여유 부족)</span>';
+  return '<span class="ng">N.G</span>';
+}
+function dcBar(r){
+  const pct=Math.min(r*100,100).toFixed(0);
+  const cls = r<0.75?'bar-ok':r<1.0?'bar-warn':'bar-ng';
+  const val = r.toFixed(3);
+  const valCls = r<0.75?'ok':r<1.0?'warn':'ng';
+  return `<div class="dc-wrap"><div class="bar-bg"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div><div class="dc-val ${valCls}">${val}</div></div>`;
+}
+function showTab(id,el){
+  document.querySelectorAll('.tcontent').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  el.classList.add('active');
+  if(id==='t-3d') setTimeout(draw3D,50);
+}
+
+// ════ 3D 캔버스 마우스/터치 컨트롤 ════
+function setupCanvas3D(){
+  const cv=document.getElementById('cv3d');
+  if(!cv) return;
+  let dragging=false, hasMoved=false;
+  let lastX=0, lastY=0;
+  let orbitSX=0, orbitSY=0; // drag 시작 시 orbitCenter의 화면 좌표
+
+  // 역투영: 화면 좌표 → 3D 월드 좌표 (z=0 수평면 근사)
+  function invProj(sx,sy){
+    const W=cv.width, H=cv.height;
+    const ox=W/2+panX, oy=H*0.6+panY;
+    const az=rotAngle*Math.PI/180, el=rotPitch*Math.PI/180;
+    const scz=sc*zoomScale;
+    if(scz<1e-6) return [0,0,0];
+    const x1=(sx-ox)/scz;
+    const y2=(sy-oy)/scz;
+    const cosEl=Math.cos(el);
+    const y1=Math.abs(cosEl)>0.01 ? y2/cosEl : y2;
+    const px= x1*Math.cos(az)+y1*Math.sin(az);
+    const py=-x1*Math.sin(az)+y1*Math.cos(az);
+    return [px,py,0];
+  }
+
+  // 순투영: 3D 월드 좌표 → 캔버스 상의 화면 좌표
+  function fwdScreen(px,py,pz){
+    const W=cv.width, H=cv.height;
+    const az=rotAngle*Math.PI/180, el=rotPitch*Math.PI/180;
+    const x1=px*Math.cos(az)-py*Math.sin(az);
+    const y1=px*Math.sin(az)+py*Math.cos(az);
+    const y2=y1*Math.cos(el)-pz*Math.sin(el);
+    return [W/2+panX+x1*sc*zoomScale, H*0.6+panY+y2*sc*zoomScale];
+  }
+
+  cv.addEventListener('mousedown',(e)=>{
+    dragging=true;
+    hasMoved=false;
+    lastX=e.clientX; lastY=e.clientY;
+    // 드래그 시작 시 공전 중심의 현재 화면 위치 기록
+    [orbitSX,orbitSY]=fwdScreen(...orbitCenter);
+    cv.style.cursor='grabbing'; e.preventDefault();
+  });
+
+  cv.addEventListener('mousemove',(e)=>{
+    if(!dragging) return;
+    const dx=e.clientX-lastX, dy=e.clientY-lastY;
+    if(Math.abs(dx)+Math.abs(dy)>2) hasMoved=true;
+    rotAngle += dx*0.5;
+    rotPitch  = Math.max(10,Math.min(85, rotPitch - dy*0.5));
+    lastX=e.clientX; lastY=e.clientY;
+    // 공전 중심이 드래그 시작 시 화면 위치에 고정되도록 panX/Y 보정
+    const [nx,ny]=fwdScreen(...orbitCenter);
+    panX += orbitSX-nx;
+    panY += orbitSY-ny;
+    draw3D();
+  });
+
+  cv.addEventListener('mouseup',(e)=>{
+    dragging=false; cv.style.cursor='grab';
+    if(!hasMoved){
+      // 클릭 (드래그 없음) → 공전 중심을 클릭 지점으로 변경
+      const rect=cv.getBoundingClientRect();
+      const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+      orbitCenter=invProj(mx,my);
+      // 화면 이동 없음 (panX/Y 변경하지 않음)
+    }
+  });
+  cv.addEventListener('mouseleave',()=>{ dragging=false; cv.style.cursor='grab'; });
+
+  cv.addEventListener('wheel',(e)=>{
+    e.preventDefault();
+    const rect=cv.getBoundingClientRect();
+    const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+    const W=cv.width, H=cv.height;
+    const cx=W/2+panX, cy=H*0.6+panY;
+     const oldZoom=zoomScale;
+    zoomScale=Math.max(0.3,Math.min(4.0, zoomScale*(e.deltaY>0?0.9:1.11)));
+    const ratio=zoomScale/oldZoom;
+    panX = mx-W/2-(mx-cx)*ratio;
+    panY = my-H*0.6-(my-cy)*ratio;
+    draw3D();
+  },{passive:false});
+
+  let tp=null;
+  cv.addEventListener('touchstart',(e)=>{ tp=e.touches[0]; e.preventDefault(); },{passive:false});
+  cv.addEventListener('touchmove',(e)=>{
+    if(!tp) return;
+    const t=e.touches[0];
+    rotAngle +=(t.clientX-tp.clientX)*0.5;
+    rotPitch  =Math.max(10,Math.min(85,rotPitch-(t.clientY-tp.clientY)*0.5));
+    tp=t; draw3D(); e.preventDefault();
+  },{passive:false});
+  cv.addEventListener('touchend',()=>{ tp=null; });
+}
+
+// ════ 초기화 ════
+window.onload=()=>{
+  initLocationSelect();
+  updateCorridorInfo();
+  calc();
+  setupCanvas3D();
+  // 초기에는 현장 탭 활성화
+  document.querySelectorAll('.tcontent').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('t-site').classList.add('active');
+  document.querySelector('.tab').classList.add('active');
+
+  // [v23] 카카오 지도 자동 활성화 — 파일에 하드코딩된 키 또는 이전에 저장된 키 사용
+  try{
+    const keyInput = document.getElementById('kakaoKeyInput');
+    if(keyInput && keyInput.value.trim()){
+      loadKakaoSDK();
+    } else {
+      const savedKey = localStorage.getItem('KAKAO_JS_KEY');
+      if(savedKey && keyInput){
+        keyInput.value = savedKey;
+        loadKakaoSDK();
+      }
+    }
+  }catch(e){ /* localStorage 미지원(예: 일부 file:// 환경) 시 무시 — 수동 입력으로 대체 가능 */ }
+};
+</script>
+</body>
+</html>
