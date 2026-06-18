@@ -1,0 +1,2218 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>철골 모듈러 구조 설계 v22 | KDS 41 30:2022</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Malgun Gothic','맑은 고딕',sans-serif;}
+body{background:#eef2f7;font-size:13px;color:#222;}
+/* ── Header ── */
+.hdr{background:#1a3a5c;color:#fff;padding:10px 20px;display:flex;align-items:center;gap:16px;}
+.hdr-logo{background:#4fc3f7;color:#1a3a5c;font-weight:bold;font-size:15px;padding:4px 10px;border-radius:4px;}
+.hdr h1{font-size:16px;font-weight:bold;}
+.hdr p{font-size:11px;color:#9cc;margin-top:2px;}
+/* ── Layout ── */
+.layout{display:flex;height:calc(100vh - 46px);overflow:hidden;}
+/* ── Left Panel ── */
+.left{width:310px;min-width:290px;background:#fff;border-right:1px solid #cdd;overflow-y:auto;padding:12px;}
+.lsec{border:1px solid #dce3ec;border-radius:6px;margin-bottom:10px;overflow:hidden;}
+.lsec-hdr{background:#2d5986;color:#fff;padding:7px 12px;font-weight:bold;font-size:12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;}
+.lsec-hdr:hover{background:#1e4070;}
+.lsec-site>.lsec-hdr{background:#1a6b3a;}
+.lsec-site>.lsec-hdr:hover{background:#145030;}
+.lsec-body{padding:10px 12px;}
+.ig{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.ii{margin-bottom:0;}
+.ii label{display:block;font-size:11px;color:#555;margin-bottom:2px;}
+.ii input,.ii select{width:100%;padding:5px 7px;border:1px solid #bcc;border-radius:4px;font-size:12px;}
+.ii input:focus,.ii select:focus{outline:none;border-color:#2d5986;}
+.ii-full{grid-column:1/-1;}
+.btn-calc{background:#2d5986;color:#fff;border:none;padding:9px;border-radius:5px;cursor:pointer;font-size:13px;font-weight:bold;width:100%;margin-top:8px;}
+.btn-calc:hover{background:#1a3a5c;}
+/* ── Right Panel ── */
+.right{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.tabs{display:flex;background:#2d5986;gap:1px;flex-wrap:wrap;}
+.tab{padding:9px 14px;color:#aac;cursor:pointer;font-size:12px;border-bottom:3px solid transparent;white-space:nowrap;}
+.tab.active{color:#fff;border-bottom-color:#4fc3f7;background:#1a3a5c;}
+.tab:hover:not(.active){color:#dde;}
+.tcontent{flex:1;overflow-y:auto;padding:14px;display:none;background:#f5f8fc;}
+.tcontent.active{display:block;}
+/* ── Cards ── */
+.card{background:#fff;border:1px solid #dce3ec;border-radius:6px;margin-bottom:12px;overflow:hidden;}
+.card-hdr{background:#f0f5fb;border-bottom:1px solid #dce3ec;padding:8px 14px;font-weight:bold;font-size:12px;color:#1a3a5c;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.card-hdr .badge{background:#2d5986;color:#fff;font-size:10px;padding:2px 7px;border-radius:10px;}
+.card-hdr .badge-green{background:#2e7d32;}
+.card-hdr .badge-red{background:#c62828;}
+.card-hdr .badge-orange{background:#e65100;}
+.card-body{padding:12px 14px;}
+/* ── Tables ── */
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{background:#e8eef5;color:#333;padding:6px 10px;text-align:center;border:1px solid #cdd;font-size:11px;}
+td{padding:5px 10px;border:1px solid #dde;text-align:center;}
+tr:nth-child(even) td{background:#f8fafc;}
+td.left-td{text-align:left;}
+/* ── D/C bar ── */
+.dc-wrap{display:flex;align-items:center;gap:6px;min-width:120px;}
+.bar-bg{flex:1;background:#e0e7f0;border-radius:8px;height:12px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:8px;transition:width 0.4s;}
+.bar-ok{background:linear-gradient(90deg,#43a047,#66bb6a);}
+.bar-warn{background:linear-gradient(90deg,#fb8c00,#ffa726);}
+.bar-ng{background:linear-gradient(90deg,#e53935,#ef5350);}
+.dc-val{font-size:11px;font-weight:bold;min-width:38px;text-align:right;}
+.ok{color:#2e7d32;font-weight:bold;}
+.ng{color:#c62828;font-weight:bold;}
+.warn{color:#e65100;font-weight:bold;}
+/* ── Summary boxes ── */
+.sum-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.sum-box{background:#fff;border:1px solid #dce3ec;border-radius:6px;padding:10px;text-align:center;}
+.sum-box .label{font-size:10px;color:#666;margin-bottom:4px;}
+.sum-box .value{font-size:18px;font-weight:bold;color:#1a3a5c;}
+.sum-box .unit{font-size:10px;color:#888;}
+/* ── Info / warn boxes ── */
+.info{background:#e3f2fd;border-left:4px solid #1976d2;padding:8px 12px;border-radius:0 4px 4px 0;font-size:11px;color:#444;margin-bottom:10px;}
+.warn-box{background:#fff8e1;border-left:4px solid #f9a825;padding:8px 12px;border-radius:0 4px 4px 0;font-size:11px;color:#555;margin-bottom:10px;}
+.success-box{background:#e8f5e9;border-left:4px solid #43a047;padding:8px 12px;border-radius:0 4px 4px 0;font-size:11px;color:#2e7d32;margin-bottom:10px;}
+/* ── Canvas ── */
+#cv3d{border:1px solid #cdd;border-radius:4px;background:#1a2540;display:block;cursor:grab;user-select:none;}
+/* ── NG 추천 단면 ── */
+.ng-recommend{background:#fff3f3;border:1px solid #ef9a9a;border-radius:5px;padding:10px 12px;margin-top:10px;}
+.ng-recommend label{display:block;color:#c62828;font-weight:bold;font-size:11px;margin-bottom:6px;}
+.ng-recommend select{width:100%;padding:6px 8px;border:1px solid #ef9a9a;border-radius:4px;font-size:12px;background:#fff;cursor:pointer;}
+.ng-recommend select:hover{border-color:#c62828;}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:11px;}
+.legend span{display:flex;align-items:center;gap:4px;}
+.legend .dot{width:12px;height:12px;border-radius:2px;display:inline-block;}
+/* ── Prop table ── */
+.prop-tbl td:first-child{text-align:left;color:#555;font-size:11px;}
+.prop-tbl td:last-child{font-weight:bold;color:#1a3a5c;}
+/* ── 현장 설정 전용 ── */
+.site-grid4{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.site-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;}
+.site-box{background:#f8fbff;border:1px solid #c8d8ec;border-radius:8px;padding:12px 10px;text-align:center;}
+.site-box .s-cat{font-size:10px;color:#777;margin-bottom:5px;font-weight:bold;letter-spacing:.3px;}
+.site-box .s-val{font-size:22px;font-weight:bold;color:#1a3a5c;line-height:1.2;}
+.site-box .s-unit{font-size:11px;color:#888;margin-top:3px;}
+.site-box .s-sub{font-size:10px;color:#aaa;margin-top:3px;}
+.site-box-snow{background:#e3f2fd;border-color:#90caf9;}
+.site-box-snow .s-val{color:#1565c0;}
+.site-box-wind{background:#e8f5e9;border-color:#a5d6a7;}
+.site-box-wind .s-val{color:#2e7d32;}
+.site-box-seisD{background:#ffebee;border-color:#ef9a9a;}
+.site-box-seisD .s-val{color:#b71c1c;}
+.site-box-seisC{background:#fff8e1;border-color:#ffe082;}
+.site-box-seisC .s-val{color:#e65100;}
+.idc-badge{display:inline-block;padding:5px 18px;border-radius:20px;font-size:20px;font-weight:bold;color:#fff;letter-spacing:1px;}
+.idc-D{background:#c62828;}
+.idc-C{background:#e65100;}
+.idc-B{background:#f9a825;color:#333;}
+.idc-A{background:#43a047;}
+.site-formula-box{background:#f5f5f5;border:1px solid #ddd;border-radius:6px;padding:12px;font-size:11px;margin-bottom:10px;}
+.site-formula-box .formula{font-size:13px;font-weight:bold;color:#1a3a5c;text-align:center;margin:6px 0;}
+.site-ref{font-size:10px;color:#888;text-align:right;margin-top:6px;}
+.loc-mini{border-collapse:collapse;width:100%;}
+.loc-mini td{padding:3px 6px;border:none;font-size:11px;}
+.loc-mini td:first-child{color:#666;}
+.loc-mini td:last-child{font-weight:bold;color:#1a3a5c;}
+.no-site{text-align:center;padding:50px 20px;color:#aaa;}
+.no-site .no-icon{font-size:52px;margin-bottom:16px;}
+.no-site p{font-size:14px;color:#888;margin-bottom:8px;}
+.no-site small{font-size:11px;}
+.loc-summary-mini{background:#f0faf2;border:1px solid #a5d6a7;border-radius:5px;padding:8px 10px;margin-top:8px;display:none;}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div style="flex:1;">
+    <h1>철골 모듈러 구조 설계</h1>
+    <p>KDS 41 30:2022 (LRFD) · KDS 41 12 00 · KDS 41 17 00 · SM355/SS275 · F10T</p>
+  </div>
+  <div style="text-align:right;font-size:11px;font-weight:bold;color:#b0d8f0;white-space:nowrap;">
+    Made by 윤영준
+  </div>
+</div>
+
+<div class="layout">
+<!-- ════════════ LEFT PANEL ════════════ -->
+<div class="left">
+
+  <!-- ★ 현장 설정 (NEW) ★ -->
+  <div class="lsec lsec-site">
+    <div class="lsec-hdr">📍 현장 설정 <span style="font-size:10px;font-weight:normal;">← 먼저 입력하세요</span></div>
+    <div class="lsec-body">
+      <div class="ig">
+        <div class="ii ii-full">
+          <label>시 / 도</label>
+          <select id="sido" onchange="updateSigungu()">
+            <option value="">-- 시/도 선택 --</option>
+          </select>
+        </div>
+        <div class="ii ii-full">
+          <label>시 / 군 / 구 (지역)</label>
+          <select id="sigungu" onchange="applyLocation()">
+            <option value="">-- 시/군/구 선택 --</option>
+          </select>
+        </div>
+        <div class="ii">
+          <label>내진등급</label>
+          <select id="seismicGrade" onchange="applyLocation()">
+            <option value="II">Ⅱ등급 (일반)</option>
+            <option value="I">Ⅰ등급 (특급)</option>
+          </select>
+        </div>
+        <div class="ii">
+          <label>지반종류</label>
+          <select id="siteClass" onchange="applyLocation(false)">
+            <option value="S1">S1 (경암)</option>
+            <option value="S2">S2 (보통암)</option>
+            <option value="S3">S3 (단단 토사)</option>
+            <option value="S4" selected>S4 (연약 토사)</option>
+            <option value="S5">S5 (특수)</option>
+          </select>
+        </div>
+        <div class="ii">
+          <label>지표면 조도구분</label>
+          <select id="windExp" onchange="updateSiteInputs()">
+            <option value="A">A (해양·해안)</option>
+            <option value="B">B (개활지)</option>
+            <option value="C" selected>C (교외·수목)</option>
+            <option value="D">D (도심)</option>
+          </select>
+        </div>
+        <div class="ii">
+          <label>반응수정계수 R</label>
+          <select id="Rfactor" onchange="updateSiteInputs()">
+            <option value="3.0">R=3.0 (모듈러)</option>
+            <option value="6.0">R=6.0 (SCBF)</option>
+            <option value="8.0">R=8.0 (SMF)</option>
+          </select>
+        </div>
+        <div class="ii">
+          <label>온도계수 Ct (설하중)</label>
+          <select id="Ct" onchange="applyLocation()">
+            <option value="1.2" selected>1.2 — 비난방 (모듈러)</option>
+            <option value="1.0">1.0 — 난방 건물</option>
+            <option value="1.3">1.3 — 냉동창고</option>
+          </select>
+        </div>
+      </div>
+      <div id="loc-summary-mini" class="loc-summary-mini">
+        <table class="loc-mini" id="loc-mini-tbl"></table>
+      </div>
+
+      <!-- ★ 카카오맵 연동 [v23] ★ -->
+      <div style="margin-top:10px;padding-top:10px;border-top:1px dashed #ccc;">
+        <label style="display:block;margin-bottom:4px;">🗺️ 지도에서 위치 확인 / 깃발 이동으로 지역 자동 설정</label>
+        <div style="display:flex;gap:6px;margin-bottom:6px;">
+          <input id="kakaoKeyInput" type="text" placeholder="카카오 JavaScript 키 입력 (developers.kakao.com 무료 발급)" style="flex:1;font-size:11px;padding:5px;">
+          <button type="button" onclick="loadKakaoSDK()" style="font-size:11px;padding:5px 10px;white-space:nowrap;">지도 활성화</button>
+        </div>
+        <div id="kakaoMap" style="width:100%;height:240px;border:1px solid #ccc;border-radius:4px;background:#f3f3f3;display:flex;align-items:center;justify-content:center;color:#888;font-size:11px;">키 입력 후 [지도 활성화]를 누르면 지도가 표시됩니다</div>
+        <div id="mapStatus" style="font-size:10.5px;color:#777;margin-top:4px;">ℹ 카카오 디벨로퍼스(developers.kakao.com)에서 무료로 JS 키를 발급받아 입력하세요. 키는 이 브라우저에만 저장됩니다(서버 전송 없음).</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 모듈 규격 -->
+  <div class="lsec">
+    <div class="lsec-hdr">📐 모듈 기본 규격</div>
+    <div class="lsec-body">
+      <div class="ig">
+        <div class="ii ii-full">
+          <label>복도 배치 타입</label>
+          <select id="corridorType" onchange="updateCorridorInfo()">
+            <option value="double">세대+중복도 마주보기형 (중복도형)</option>
+            <option value="single">편복도형 (세대+복도)</option>
+            <option value="none">복도 없음 (단독 세대)</option>
+          </select>
+        </div>
+        <div class="ii"><label>X방향 모듈 폭 (mm)</label><input id="Lx" type="number" value="3900" onchange="updateCorridorInfo()"></div>
+        <div class="ii"><label>Y방향 세대 길이 (mm)</label><input id="Ly" type="number" value="5150" onchange="updateCorridorInfo()"></div>
+        <div class="ii"><label>복도 길이 Lc (mm) <span id="lc-hint" style="color:#e65100;font-size:10px;font-weight:bold;"></span></label><input id="Lc" type="number" value="2400" onchange="updateCorridorInfo()"></div>
+        <div class="ii"><label>층고 (mm)</label><input id="Hz" type="number" value="3400"></div>
+        <div class="ii"><label>층수</label><input id="nFloor" type="number" value="4" min="1" max="20"></div>
+        <div class="ii"><label>X방향 모듈 개수 nX</label><input id="nX" type="number" value="7" min="1" max="30" onchange="updateCorridorInfo()"></div>
+        <div class="ii"><label>Y방향 배치 열 수</label><input id="nY" type="number" value="1" min="1" max="5" onchange="updateCorridorInfo()"></div>
+      </div>
+      <div id="corridor-info" class="info" style="margin-top:6px;font-size:10px;display:none;"></div>
+    </div>
+  </div>
+
+  <!-- 재료 -->
+  <div class="lsec">
+    <div class="lsec-hdr">🔩 재료 등급</div>
+    <div class="lsec-body">
+      <div class="ig">
+        <div class="ii"><label>기둥 강재</label>
+          <select id="matCol"><option value="355">SM355 (Fy=355)</option><option value="275">SS275 (Fy=275)</option></select>
+        </div>
+        <div class="ii"><label>보 강재</label>
+          <select id="matBeam"><option value="275">SS275 (Fy=275)</option><option value="355">SM355 (Fy=355)</option></select>
+        </div>
+        <div class="ii"><label>콘크리트 fck (MPa)</label><input id="fck" type="number" value="24"></div>
+        <div class="ii"><label>슬래브 두께 (mm)</label><input id="tSlab" type="number" value="180"></div>
+        <div class="ii"><label>콘크리트 밀도 (kN/m³)</label>
+          <select id="gammaConc">
+            <option value="24" selected>24 — 모듈러 데크슬래브 ★</option>
+            <option value="25">25 — 일반 RC (철근 포함)</option>
+          </select>
+        </div>
+        <div class="ii"><label>처짐 허용기준</label>
+          <select id="deflectLimit">
+            <option value="300" selected>L/300 — KDS 일반 기준</option>
+            <option value="360">L/360 — 단기(활하중) 기준</option>
+            <option value="240">L/240 — 장기(전하중) 기준</option>
+          </select>
+        </div>
+        <div class="ii"><label>보-기둥 접합 조건</label>
+          <select id="connType" onchange="calc()">
+            <option value="fixed" selected>양단강접 (Fixed-Fixed) ★</option>
+            <option value="simple">단순지지 (Simple-Simple)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 하중 -->
+  <div class="lsec">
+    <div class="lsec-hdr">⬇ 설계 하중</div>
+    <div class="lsec-body">
+      <div class="ig">
+        <div class="ii"><label>추가 고정하중 (kN/m²)</label><input id="wDLa" type="number" value="2.5" step="0.1"></div>
+        <div class="ii"><label>활하중 (kN/m²)</label><input id="wLL" type="number" value="2.0" step="0.1"></div>
+        <div class="ii">
+          <label>적설하중 Sf (kN/m²) <span style="color:#1a6b3a;font-size:10px;">← 자동</span></label>
+          <input id="wSL" type="number" value="1.05" step="0.05">
+        </div>
+        <div class="ii"><label>층당 칸막이 (kN/m²)</label><input id="wPart" type="number" value="1.0" step="0.1"></div>
+      </div>
+      <div class="info" style="margin-top:8px;font-size:10px;">슬래브 자중: γ×t_slab/1000 [kN/m²] 자동 계산 (γ=24: 모듈러 데크슬래브 기준, 재료 탭에서 변경 가능) | 적설하중: 현장 선택 시 Sf=Cb×Ce×Ct×Is×Sg 자동 계산</div>
+    </div>
+  </div>
+
+  <!-- 단면 선택 -->
+  <div class="lsec">
+    <div class="lsec-hdr">📊 부재 단면 선택</div>
+    <div class="lsec-body">
+      <div class="ig">
+        <div class="ii ii-full"><label>기둥 (SC)</label>
+          <select id="secCol">
+            <optgroup label="── H형강 정방형 (기둥용 권장) ──">
+              <option value="H100x100">H-100×100×6×8</option>
+              <option value="H125x125">H-125×125×6.5×9</option>
+              <option value="H150x150">H-150×150×7×10</option>
+              <option value="H175x175">H-175×175×7.5×11</option>
+              <option value="H200x200" selected>H-200×200×8×12 ★</option>
+              <option value="H250x250">H-250×250×9×14</option>
+              <option value="H300x300">H-300×300×10×15</option>
+              <option value="H350x350">H-350×350×12×19</option>
+              <option value="H400x400">H-400×400×13×21</option>
+            </optgroup>
+            <optgroup label="── 각형강관 SHS (기둥) ──">
+              <option value="SHS100x4.5">□-100×100×4.5</option>
+              <option value="SHS125x4.5">□-125×125×4.5</option>
+              <option value="SHS150x6.0">□-150×150×6.0</option>
+              <option value="SHS175x6.0">□-175×175×6.0</option>
+              <option value="SHS200x6.0">□-200×200×6.0</option>
+              <option value="SHS200x8.0">□-200×200×8.0</option>
+              <option value="SHS250x8.0">□-250×250×8.0</option>
+              <option value="SHS300x9.0">□-300×300×9.0</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="ii ii-full"><label>상부보 (Top Beam) — X·Y방향 동일 단면</label>
+          <select id="secTop">
+            <optgroup label="── H형강 광폭 (상부보 권장) ──">
+              <option value="H194x150" selected>H-194×150×6×9 ★</option>
+              <option value="H200x100">H-200×100×5.5×8</option>
+              <option value="H244x175">H-244×175×7×11</option>
+              <option value="H248x124">H-248×124×5×8</option>
+              <option value="H250x125">H-250×125×6×9</option>
+              <option value="H294x200">H-294×200×8×12</option>
+              <option value="H298x149">H-298×149×5.5×8</option>
+              <option value="H300x150">H-300×150×6.5×9</option>
+              <option value="H340x250">H-340×250×9×14</option>
+              <option value="H350x175">H-350×175×7×11</option>
+              <option value="H390x300">H-390×300×10×16</option>
+              <option value="H400x200">H-400×200×8×13</option>
+              <option value="H440x300">H-440×300×11×18</option>
+              <option value="H450x200">H-450×200×9×14</option>
+              <option value="H500x200">H-500×200×10×16</option>
+              <option value="H500x300">H-500×300×11×18</option>
+              <option value="H588x300">H-588×300×12×20</option>
+              <option value="H600x200">H-600×200×11×17</option>
+            </optgroup>
+            <optgroup label="── H형강 정방형 ──">
+              <option value="H150x150">H-150×150×7×10</option>
+              <option value="H175x175">H-175×175×7.5×11</option>
+              <option value="H200x200">H-200×200×8×12</option>
+              <option value="H250x250">H-250×250×9×14</option>
+              <option value="H300x300">H-300×300×10×15</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="ii ii-full"><label>하부보 (Bottom Beam) — X·Y방향 동일 단면, 바닥 전하중, 기둥과 핀접합(합성보 검토)</label>
+          <select id="secBot">
+            <optgroup label="── H형강 광폭 (바닥보 권장) ──">
+              <option value="H194x150">H-194×150×6×9</option>
+              <option value="H200x100">H-200×100×5.5×8</option>
+              <option value="H244x175">H-244×175×7×11</option>
+              <option value="H248x124">H-248×124×5×8</option>
+              <option value="H250x125">H-250×125×6×9</option>
+              <option value="H294x200">H-294×200×8×12</option>
+              <option value="H298x149">H-298×149×5.5×8</option>
+              <option value="H300x150">H-300×150×6.5×9</option>
+              <option value="H340x250">H-340×250×9×14</option>
+              <option value="H350x175">H-350×175×7×11</option>
+              <option value="H390x300">H-390×300×10×16</option>
+              <option value="H400x200">H-400×200×8×13</option>
+              <option value="H440x300">H-440×300×11×18</option>
+              <option value="H450x200">H-450×200×9×14</option>
+              <option value="H500x200">H-500×200×10×16</option>
+              <option value="H500x300">H-500×300×11×18</option>
+              <option value="H588x300">H-588×300×12×20</option>
+              <option value="H600x200">H-600×200×11×17</option>
+            </optgroup>
+            <optgroup label="── H형강 정방형 ──">
+              <option value="H150x150">H-150×150×7×10</option>
+              <option value="H175x175">H-175×175×7.5×11</option>
+              <option value="H200x200">H-200×200×8×12</option>
+              <option value="H250x250">H-250×250×9×14</option>
+              <option value="H300x300">H-300×300×10×15</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="ii"><label>모듈간 이음 볼트</label>
+          <select id="boltJP"><option value="M16">M16 F10T</option><option value="M20">M20 F10T</option></select>
+        </div>
+        <div class="ii"><label>이음 볼트 수 (웨브)</label>
+          <input id="nBoltJP" type="number" value="3" min="1"></div>
+        <div class="ii"><label>주각 앵커볼트</label>
+          <select id="boltAnc"><option value="M20">M20 J형</option><option value="M24">M24 J형</option></select>
+        </div>
+        <div class="ii"><label>앵커볼트 수</label>
+          <input id="nAnc" type="number" value="4" min="2"></div>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-calc" onclick="calc()">▶ 구조 검토 실행</button>
+</div><!-- /left -->
+
+<!-- ════════════ RIGHT PANEL ════════════ -->
+<div class="right">
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('t-site',this)">📍 현장</div>
+    <div class="tab" onclick="showTab('t-slab',this)">슬래브</div>
+    <div class="tab" onclick="showTab('t-gir',this)">상부보</div>
+    <div class="tab" onclick="showTab('t-beam',this)">하부보</div>
+    <div class="tab" onclick="showTab('t-col',this)">기둥 (SC)</div>
+    <div class="tab" onclick="showTab('t-conn',this)">접합부</div>
+    <div class="tab" onclick="showTab('t-3d',this)">3D 뷰어</div>
+    <div class="tab" onclick="showTab('t-sum',this)">설계 요약</div>
+
+  </div>
+
+  <!-- ── TAB: 현장 설정 (NEW) ── -->
+  <div class="tcontent active" id="t-site">
+    <div id="site-res">
+      <div class="no-site">
+        <div class="no-icon">📍</div>
+        <p>좌측 패널에서 <strong>현장 위치</strong>를 선택하세요</p>
+        <small>시/도 → 시/군/구 선택 시 설하중·풍하중·지진하중 기준값이 자동으로 설정됩니다</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: 슬래브 ── -->
+  <div class="tcontent" id="t-slab">
+    <div class="card">
+      <div class="card-hdr">📋 TG 데크 슬래브 검토 <span class="badge">KDS 41 20:2022</span></div>
+      <div class="card-body">
+        <div class="info">슬래브는 X방향(단변, Lx)으로 스팬합니다. 하부보(Y방향)가 지지점입니다.</div>
+        <div id="slab-res">계산을 실행하세요.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: 상부보 ── -->
+  <div class="tcontent" id="t-gir">
+    <div class="card">
+      <div class="card-hdr">📋 상부보 (Top Beam) 설계 검토 <span class="badge">X·Y방향 공통 단면</span></div>
+      <div class="card-body">
+        <div class="info">상부보(모듈 상단 프레임)는 X·Y 양방향 동일 단면을 사용합니다. 천장 마감재 고정하중(wDL_a)만을 지지합니다. [v19] 기둥과 강접합(모멘트 전달)되는 부재로, 기둥 조합응력 검토 시 단부모멘트는 상부보에서 산정합니다.</div>
+        <div id="gir-res">계산을 실행하세요.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: 하부보 ── -->
+  <div class="tcontent" id="t-beam">
+    <div class="card">
+      <div class="card-hdr">📋 하부보 (Bottom Beam) 설계 검토 <span class="badge">X·Y방향 공통 단면 · 합성보 · 핀접합</span></div>
+      <div class="card-body">
+        <div class="info">하부보(바닥 프레임)는 X·Y 양방향 동일 단면을 사용합니다. 바닥 슬래브 전하중(1.2DL+1.6LL)을 지지합니다. [v19] 기둥과는 전단(핀) 접합(모멘트 비전달)으로 항상 단순지지로 거동하며, 데크슬래브와 스터드로 합성되어 휨강도는 합성보 기준(φMn)으로 검토합니다.</div>
+        <div id="beam-res">계산을 실행하세요.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: 기둥 ── -->
+  <div class="tcontent" id="t-col">
+    <div class="card">
+      <div class="card-hdr">📋 기둥 (SC) 설계 검토 <span class="badge">KDS 41 30:2022</span></div>
+      <div class="card-body">
+        <div class="info">층별 축력 누적. 각 기둥의 부담 면적 = Lx/2 × Ly/2 (모서리 기둥 기준).</div>
+        <div id="col-res">계산을 실행하세요.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: 접합부 ── -->
+  <div class="tcontent" id="t-conn">
+    <div class="card">
+      <div class="card-hdr">📋 접합부 설계 검토 <span class="badge">F10T 볼트</span></div>
+      <div class="card-body">
+        <div id="conn-res">계산을 실행하세요.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: 3D 뷰어 ── -->
+  <div class="tcontent" id="t-3d">
+    <div class="card">
+      <div class="card-hdr">🏗 모듈 3D 뷰어</div>
+      <div class="card-body" style="text-align:center;">
+        <canvas id="cv3d" width="700" height="480"></canvas>
+        <div class="legend">
+          <span><span class="dot" style="background:#4fc3f7"></span>기둥 (SC)</span>
+          <span><span class="dot" style="background:#ff8f00"></span>상부보 Y방향</span>
+          <span><span class="dot" style="background:#66bb6a"></span>상부보 X방향</span>
+          <span><span class="dot" style="background:#b0bec5;opacity:.5"></span>슬래브</span>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:#aaa;">
+          🖱 드래그: 회전 &nbsp;|&nbsp; 스크롤: 확대/축소 &nbsp;|&nbsp;
+          <button onclick="rotAngle=30;rotPitch=60;zoomScale=1.0;panX=0;panY=0;resetOrbitCenter();draw3D();" style="padding:3px 10px;cursor:pointer;font-size:11px;border-radius:3px;">초기화</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: 설계 요약 ── -->
+  <div class="tcontent" id="t-sum">
+    <div class="card">
+      <div class="card-hdr">📝 구조 설계 요약</div>
+      <div class="card-body">
+        <div id="sum-res">계산을 실행하세요.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: 구조계산서 비교 (v6 제거) ── -->
+  <div class="tcontent" id="t-compare" style="display:none!important;">
+    <div class="card">
+      <div class="card-hdr" style="background:#666;color:#fff;">📊 구조계산서 비교 분석 (v6에서 제거)</div>
+      <div class="card-body">
+        <div class="warn-box">
+          <b>비교 조건:</b> 3개 현장 구조계산서(MIDAS Gen 3D 프레임 해석 결과)와 v5 프로그램(단순보 가정) 결과 비교.<br>
+          공통 하중: DL=6.0 kN/m², LL=2.0 kN/m², wu=10.4 kN/m² | 슬래브: TG55-140 데크, t=180mm, fck=24MPa
+        </div>
+
+        <h3 style="font-size:12px;color:#1a3a5c;margin:12px 0 6px;">① 주보 (Girder) 휨모멘트 비교</h3>
+        <table>
+          <tr>
+            <th>현장 (부재)</th><th>Fy (MPa)</th><th>Ly (m)</th>
+            <th>v5 Mu (단순보)<br>kN·m</th><th>MIDAS My<br>kN·m</th>
+            <th>비율<br>v5/MIDAS</th>
+            <th>v5 φMn<br>kN·m</th><th>MIDAS φMn<br>kN·m</th>
+            <th>v5 D/C</th><th>MIDAS D/C</th>
+          </tr>
+          <tr>
+            <td class="left-td">55사단·고흥<br><b>H-300×150</b></td>
+            <td>SM355 (355)</td><td>7.9</td>
+            <td style="color:#c62828;font-weight:bold;">316.4</td><td>145.5</td>
+            <td style="color:#e65100;font-weight:bold;">2.17×</td>
+            <td>173.4</td><td>173.2</td>
+            <td><span class="ng">1.825</span></td><td><span class="ok">0.840</span></td>
+          </tr>
+          <tr>
+            <td class="left-td">55사단·고흥<br><b>H-300×150</b></td>
+            <td>SM355 (355)</td><td>2.4</td>
+            <td>29.2</td><td>60.7</td>
+            <td style="color:#43a047;">0.48×</td>
+            <td>173.4</td><td>173.2</td>
+            <td><span class="ok">0.168</span></td><td><span class="ok">0.350</span></td>
+          </tr>
+          <tr>
+            <td class="left-td">23경비여단 A동<br><b>H-400×200</b></td>
+            <td>SS275 (275)</td><td>7.9</td>
+            <td style="color:#e65100;font-weight:bold;">316.4</td><td>196.5</td>
+            <td style="color:#e65100;font-weight:bold;">1.61×</td>
+            <td>329.2</td><td>329.2</td>
+            <td><span class="warn">0.961</span></td><td><span class="ok">0.597</span></td>
+          </tr>
+        </table>
+
+        <div class="success-box" style="margin-top:10px;">
+          ✅ <b>v5 주요 개선:</b> H-300×150 Zx 506,000→542,000 (+7%), H-400×200 Zx 1,254,000→1,330,000 (+6%), Ix 237→240×10⁶mm⁴ → φMn 정확도 향상.<br>
+          23경비여단 H-400×200 D/C: v4 1.020(NG) → v5 0.961(OK) ← Zx 수정으로 NG→OK 전환!
+        </div>
+
+        <h3 style="font-size:12px;color:#1a3a5c;margin:12px 0 6px;">② v5 vs MIDAS 주보 처짐 비교</h3>
+        <table>
+          <tr>
+            <th>현장 (부재)</th><th>Ly (m)</th>
+            <th>v5 δ (단순보)<br>mm</th><th>v5 L/300<br>mm</th><th>v5 D/C</th>
+            <th>비고 (MIDAS)</th>
+          </tr>
+          <tr>
+            <td class="left-td">55사단 H-300×150</td><td>7.9</td>
+            <td style="color:#c62828;font-weight:bold;">104.5</td><td>26.3</td>
+            <td><span class="ng">3.97</span></td>
+            <td>데크슬래브 합성효과·단부 구속으로 실제 처짐 훨씬 작음. 단순보 δ는 보수적 상한값.</td>
+          </tr>
+          <tr>
+            <td class="left-td">23경비여단 H-400×200</td><td>7.9</td>
+            <td style="color:#e65100;">31.8</td><td>26.3</td>
+            <td><span class="ng">1.21</span></td>
+            <td>단순보 가정 시 약간 초과. 실제 프레임 해석에서 OK 확인.</td>
+          </tr>
+        </table>
+
+        <h3 style="font-size:12px;color:#1a3a5c;margin:12px 0 6px;">③ 차이 원인 분석 및 v5 수정 사항</h3>
+        <table>
+          <tr><th>항목</th><th>v4 (이전)</th><th>v5 (수정)</th><th>영향</th></tr>
+          <tr>
+            <td class="left-td">H-300×150 Zx</td>
+            <td>506,000 mm³</td>
+            <td style="color:#2e7d32;font-weight:bold;">542,000 mm³ (+7%)</td>
+            <td>φMn: 161.7 → 173.4 kN·m (+7%)</td>
+          </tr>
+          <tr>
+            <td class="left-td">H-400×200 Zx</td>
+            <td>1,254,000 mm³</td>
+            <td style="color:#2e7d32;font-weight:bold;">1,330,000 mm³ (+6%)</td>
+            <td>φMn: 310.4 → 329.2 kN·m (+6%) → 23경비여단 NG→OK</td>
+          </tr>
+          <tr>
+            <td class="left-td">H-400×200 Ix</td>
+            <td>237.0×10⁶ mm⁴</td>
+            <td style="color:#2e7d32;font-weight:bold;">240.0×10⁶ mm⁴ (+1.3%)</td>
+            <td>처짐 계산 정확도 향상</td>
+          </tr>
+          <tr>
+            <td class="left-td">콘크리트 밀도</td>
+            <td>25 kN/m³ (고정)</td>
+            <td style="color:#2e7d32;font-weight:bold;">24 kN/m³ (선택 가능)</td>
+            <td>모듈러 데크슬래브 자중 일치 (4.5→4.32 kN/m²)</td>
+          </tr>
+          <tr>
+            <td class="left-td">처짐 허용기준</td>
+            <td>L/300 (고정)</td>
+            <td style="color:#2e7d32;font-weight:bold;">L/300, L/360, L/240 선택</td>
+            <td>KDS 단기(L/360)·장기(L/240) 검토 가능</td>
+          </tr>
+          <tr style="background:#fff8e1;">
+            <td class="left-td"><b>해석방법 차이</b><br><span style="font-size:10px;">(프로그램 한계)</span></td>
+            <td colspan="2">v5: 단순보 Mu=wL²/8 (변경 없음)</td>
+            <td style="color:#e65100;">MIDAS 3D 프레임 My 대비 1.6~2.2배 보수적. 프레임 해석 SW 최종 검증 필수.</td>
+          </tr>
+        </table>
+
+        <div class="info" style="margin-top:10px;">
+          <b>현장별 조건 요약:</b><br>
+          • 55사단(여주) / 고흥군: Lx=3,900mm, Ly=7,900mm, H-300×150×6.5×9, SM355, 지상 2층<br>
+          • 23경비여단(삼척) A동: Lx=3,900mm, Ly=7,900mm, H-400×200×8×13 (주보), H-194×150×6×9 (부보), SS275, 지상 4층<br>
+          ※ Zx DB 수정값은 MIDAS Gen 내부 KS 규격값과 일치 (φMn 역산 확인)
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /right -->
+</div><!-- /layout -->
+
+<script>
+// ════════════════════════════════════════════════════
+// 지역별 하중 조건 데이터베이스
+// KDS 41 12 00 (설계하중) + KDS 41 17 00 (내진) 기준
+// 실제 프로젝트 검토서(xlsx) 기반으로 검증된 값 포함
+// Sg: 기본 지상 설하중 (kN/m²)
+// Vb: 설계 기본 풍속 (m/s)
+// Z : 지역계수 (KDS 41 17 00 기준)
+// soil: 기본 추정 지반종류 (현장조사 확인 필요)
+// idc : 내진설계범주 (내진등급 II, 기본 지반 기준)
+// ● 표시: 실제 프로젝트 xlsx 검증값
+// ════════════════════════════════════════════════════
+const REGION_DB = {
+"서울특별시": {
+  "전체 (공통)": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"}
+},
+"부산광역시": {
+  "전체 (도심·내륙)": {Sg:.5, Vb:35, Z:.22, soil:"S2", idc:"D"},
+  "해안가 (해운대·수영·영도)": {Sg:.5, Vb:35, Z:.22, soil:"S3", idc:"D"}
+},
+"대구광역시": {
+  "전체 (공통)": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"}
+},
+"인천광역시": {
+  "계양구 ●": {Sg:.5, Vb:32, Z:.22, soil:"S2", idc:"D"},
+  "부평구·서구·남구 (도심)": {Sg:.5, Vb:32, Z:.22, soil:"S2", idc:"D"},
+  "연수구·남동구·중구 (매립지)": {Sg:.5, Vb:32, Z:.22, soil:"S4", idc:"D"},
+  "강화군": {Sg:.5, Vb:32, Z:.22, soil:"S2", idc:"D"},
+  "옹진군 (도서)": {Sg:.5, Vb:40, Z:.22, soil:"S2", idc:"D"}
+},
+"광주광역시": {
+  "전체 (공통)": {Sg:.5, Vb:28, Z:.11, soil:"S2", idc:"C"}
+},
+"대전광역시": {
+  "전체 (공통)": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"}
+},
+"울산광역시": {
+  "전체 (공통)": {Sg:.5, Vb:32, Z:.22, soil:"S2", idc:"D"}
+},
+"세종특별자치시": {
+  "전체 (공통)": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"}
+},
+"경기도": {
+  "수원시": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "성남시": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "의정부시": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "안양시": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "부천시 (소사구 등) ●": {Sg:.5, Vb:26, Z:.22, soil:"S4", idc:"C"},
+  "광명시": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "평택시": {Sg:.5, Vb:28, Z:.22, soil:"S2", idc:"C"},
+  "동두천시": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "안산시 (반월·시화 산단)": {Sg:.5, Vb:28, Z:.22, soil:"S4", idc:"D"},
+  "고양시": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "과천시": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "구리시": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "남양주시": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "오산시": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "시흥시": {Sg:.5, Vb:28, Z:.22, soil:"S3", idc:"D"},
+  "군포시": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "의왕시": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "하남시": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "용인시 ●": {Sg:.5, Vb:26, Z:.22, soil:"S4", idc:"C"},
+  "파주시": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "이천시": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "안성시": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "김포시": {Sg:.5, Vb:28, Z:.22, soil:"S2", idc:"C"},
+  "화성시": {Sg:.5, Vb:28, Z:.22, soil:"S2", idc:"C"},
+  "광주시": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "양주시": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "포천시": {Sg:1., Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "여주시": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "연천군": {Sg:1., Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "가평군": {Sg:1., Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "양평군": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"}
+},
+"강원특별자치도": {
+  "춘천시": {Sg:1.5, Vb:28, Z:.15, soil:"S2", idc:"D"},
+  "원주시": {Sg:1., Vb:28, Z:.15, soil:"S2", idc:"D"},
+  "강릉시 (영동)": {Sg:2., Vb:35, Z:.15, soil:"S2", idc:"D"},
+  "동해시 (영동)": {Sg:2., Vb:35, Z:.15, soil:"S2", idc:"D"},
+  "태백시": {Sg:3., Vb:30, Z:.15, soil:"S1", idc:"D"},
+  "속초시 (영동)": {Sg:2., Vb:35, Z:.15, soil:"S2", idc:"D"},
+  "삼척시 (영동) ●": {Sg:2., Vb:32, Z:.15, soil:"S3", idc:"D"},
+  "홍천군 ●": {Sg:1.5, Vb:28, Z:.15, soil:"S4", idc:"D"},
+  "횡성군": {Sg:1., Vb:28, Z:.15, soil:"S2", idc:"D"},
+  "영월군": {Sg:1., Vb:28, Z:.15, soil:"S2", idc:"D"},
+  "평창군 (대설지역)": {Sg:2., Vb:28, Z:.15, soil:"S2", idc:"D"},
+  "정선군": {Sg:2., Vb:28, Z:.15, soil:"S2", idc:"D"},
+  "철원군": {Sg:1.5, Vb:28, Z:.15, soil:"S2", idc:"D"},
+  "화천군 ●": {Sg:1., Vb:28, Z:.15, soil:"S4", idc:"D"},
+  "양구군": {Sg:1.5, Vb:28, Z:.15, soil:"S2", idc:"D"},
+  "인제군": {Sg:1.5, Vb:28, Z:.15, soil:"S2", idc:"D"},
+  "고성군 (영동)": {Sg:2., Vb:35, Z:.15, soil:"S2", idc:"D"},
+  "양양군 (영동)": {Sg:2., Vb:35, Z:.15, soil:"S2", idc:"D"}
+},
+"충청북도": {
+  "청주시": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "충주시": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "제천시": {Sg:1., Vb:28, Z:.22, soil:"S2", idc:"C"},
+  "보은군·옥천군·영동군": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "진천군·음성군·증평군": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "단양군·괴산군": {Sg:1., Vb:26, Z:.22, soil:"S2", idc:"C"}
+},
+"충청남도": {
+  "천안시·아산시 (내륙)": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "공주시·논산시·계룡시": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "보령시·서산시·태안군 (서해안)": {Sg:.5, Vb:32, Z:.22, soil:"S2", idc:"C"},
+  "당진시 (서해안)": {Sg:.5, Vb:32, Z:.22, soil:"S3", idc:"D"},
+  "홍성군·예산군": {Sg:.5, Vb:28, Z:.22, soil:"S2", idc:"C"},
+  "금산군·부여군·청양군": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "서천군 (서해안)": {Sg:.5, Vb:32, Z:.22, soil:"S2", idc:"C"}
+},
+"전라북도": {
+  "전주시·익산시·완주군": {Sg:.5, Vb:28, Z:.11, soil:"S2", idc:"C"},
+  "군산시 (서해안)": {Sg:.5, Vb:30, Z:.11, soil:"S3", idc:"C"},
+  "정읍시·김제시": {Sg:.5, Vb:28, Z:.11, soil:"S2", idc:"C"},
+  "남원시·임실군·순창군": {Sg:.5, Vb:28, Z:.11, soil:"S2", idc:"C"},
+  "무주군·진안군·장수군 (산악)": {Sg:1., Vb:28, Z:.11, soil:"S2", idc:"C"},
+  "고창군·부안군 (서해안)": {Sg:.5, Vb:30, Z:.11, soil:"S2", idc:"C"}
+},
+"전라남도": {
+  "나주시·담양군·화순군·장성군 (내륙)": {Sg:.5, Vb:28, Z:.11, soil:"S2", idc:"C"},
+  "순천시·광양시·구례군·곡성군 (내륙)": {Sg:.5, Vb:30, Z:.11, soil:"S2", idc:"C"},
+  "목포시 (해안)": {Sg:.5, Vb:35, Z:.11, soil:"S3", idc:"C"},
+  "여수시 (해안)": {Sg:.5, Vb:35, Z:.11, soil:"S2", idc:"C"},
+  "보성군·장흥군·강진군": {Sg:.5, Vb:30, Z:.11, soil:"S2", idc:"C"},
+  "고흥군 ●": {Sg:1.5, Vb:35, Z:.11, soil:"S4", idc:"D"},
+  "무안군 (공항 인근) ●": {Sg:1.5, Vb:36, Z:.11, soil:"S4", idc:"D"},
+  "완도군 (도서) ●": {Sg:1.5, Vb:42, Z:.11, soil:"S4", idc:"D"},
+  "해남군 (남단)": {Sg:1., Vb:35, Z:.11, soil:"S2", idc:"C"},
+  "영암군·함평군·영광군": {Sg:.5, Vb:30, Z:.11, soil:"S2", idc:"C"},
+  "진도군 (도서)": {Sg:.5, Vb:40, Z:.11, soil:"S2", idc:"C"},
+  "신안군 (도서)": {Sg:.5, Vb:45, Z:.11, soil:"S2", idc:"C"}
+},
+"경상북도": {
+  "포항시 (동해안)": {Sg:.5, Vb:32, Z:.22, soil:"S2", idc:"D"},
+  "경주시": {Sg:.5, Vb:30, Z:.22, soil:"S2", idc:"D"},
+  "안동시·영주시·문경시 (내륙)": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "구미시·김천시 (내륙)": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "경산시·영천시·청도군": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "울진군 (동해안)": {Sg:1.5, Vb:32, Z:.22, soil:"S2", idc:"D"},
+  "영덕군 (동해안)": {Sg:1., Vb:32, Z:.22, soil:"S2", idc:"D"},
+  "봉화군·청송군·영양군 (산악)": {Sg:1.5, Vb:28, Z:.22, soil:"S2", idc:"C"},
+  "의성군·고령군·성주군·칠곡군·예천군": {Sg:.5, Vb:26, Z:.22, soil:"S2", idc:"C"},
+  "울릉군 (도서)": {Sg:3., Vb:40, Z:.22, soil:"S1", idc:"D"}
+},
+"경상남도": {
+  "창원시 (해안)": {Sg:.5, Vb:32, Z:.22, soil:"S2", idc:"D"},
+  "진주시·밀양시·합천군 (내륙)": {Sg:.5, Vb:28, Z:.22, soil:"S2", idc:"C"},
+  "거제시·통영시·남해군 (해안)": {Sg:.5, Vb:35, Z:.22, soil:"S2", idc:"D"},
+  "사천시·고성군 (해안)": {Sg:.5, Vb:32, Z:.22, soil:"S2", idc:"D"},
+  "김해시·양산시": {Sg:.5, Vb:30, Z:.22, soil:"S2", idc:"D"},
+  "하동군 ●": {Sg:.5, Vb:32, Z:.22, soil:"S4", idc:"D"},
+  "의령군·함안군·창녕군 (내륙)": {Sg:.5, Vb:28, Z:.22, soil:"S2", idc:"C"},
+  "산청군·함양군·거창군 (산악)": {Sg:.5, Vb:28, Z:.22, soil:"S2", idc:"C"}
+},
+"제주특별자치도": {
+  "제주시 (저지대)": {Sg:2., Vb:44, Z:.11, soil:"S1", idc:"C"},
+  "서귀포시 (저지대)": {Sg:2., Vb:44, Z:.11, soil:"S1", idc:"C"},
+  "산간지역 (한라산 근처)": {Sg:5., Vb:50, Z:.11, soil:"S1", idc:"C"}
+}
+};
+
+// ════ 단면 데이터베이스 (N, mm) KS D 3502 / KS D 3501 / KS D 3568 ════
+// A:mm², d:높이, bf:플랜지폭, tw:웨브두께, tf:플랜지두께 (mm)
+// Ix/Iy:mm⁴, Zx/Zy:mm³ (소성단면계수), rx/ry:회전반경(mm)
+const SEC = {
+  // ── H형강 정방형 (KS D 3502) ──
+  'H100x100':{A:2120, d:100,bf:100,tw:6,  tf:8,  Ix:3.84e6,  Iy:1.34e6,  Zx:83700,  Zy:26700,  rx:42.6,ry:25.2, label:'H-100×100×6×8'},
+  'H125x125':{A:2970, d:125,bf:125,tw:6.5,tf:9,  Ix:8.47e6,  Iy:2.93e6,  Zx:147000, Zy:46800,  rx:53.4,ry:31.4, label:'H-125×125×6.5×9'},
+  'H150x150':{A:4003, d:150,bf:150,tw:7,  tf:10, Ix:16.6e6,  Iy:5.63e6,  Zx:237000, Zy:75000,  rx:64.4,ry:37.5, label:'H-150×150×7×10'},
+  'H175x175':{A:5130, d:175,bf:175,tw:7.5,tf:11, Ix:35.4e6,  Iy:12.1e6,  Zx:435000, Zy:138000, rx:83.1,ry:48.6, label:'H-175×175×7.5×11'},
+  'H200x200':{A:6353, d:200,bf:200,tw:8,  tf:12, Ix:47.2e6,  Iy:16.0e6,  Zx:499000, Zy:240000, rx:86.2,ry:50.2, label:'H-200×200×8×12'},
+  'H250x250':{A:9218, d:250,bf:250,tw:9,  tf:14, Ix:108.0e6, Iy:36.5e6,  Zx:932000, Zy:440000, rx:108.2,ry:62.9,label:'H-250×250×9×14'},
+  'H300x300':{A:11980,d:300,bf:300,tw:10, tf:15, Ix:204.0e6, Iy:67.4e6,  Zx:1471000,Zy:676000, rx:130,  ry:75.0, label:'H-300×300×10×15'},
+  'H350x350':{A:17370,d:350,bf:350,tw:12, tf:19, Ix:637.0e6, Iy:211.0e6, Zx:3953000,Zy:1209000,rx:191,  ry:110,  label:'H-350×350×12×19'},
+  'H400x400':{A:21870,d:400,bf:400,tw:13, tf:21, Ix:1085.0e6,Iy:361.0e6, Zx:5832000,Zy:1810000,rx:223,  ry:128,  label:'H-400×400×13×21'},
+  // ── H형강 광폭 (KS D 3502) ──
+  'H150x75': {A:1740, d:150,bf:75, tw:5,  tf:7,  Ix:6.66e6,  Iy:0.508e6, Zx:95900,  Zy:13500,  rx:61.9,ry:17.1, label:'H-150×75×5×7'},
+  'H175x90': {A:2310, d:175,bf:90, tw:5,  tf:8,  Ix:13.4e6,  Iy:0.978e6, Zx:168000, Zy:21700,  rx:76.2,ry:20.6, label:'H-175×90×5×8'},
+  'H194x150':{A:3810, d:194,bf:150,tw:6,  tf:9,  Ix:26.6e6,  Iy:5.08e6,  Zx:302000, Zy:101300, rx:83.5,ry:36.5, label:'H-194×150×6×9'},
+  'H200x100':{A:2710, d:200,bf:100,tw:5.5,tf:8,  Ix:18.7e6,  Iy:1.34e6,  Zx:203000, Zy:26700,  rx:83.1,ry:22.2, label:'H-200×100×5.5×8'},
+  'H244x175':{A:5650, d:244,bf:175,tw:7,  tf:11, Ix:88.1e6,  Iy:9.85e6,  Zx:773000, Zy:112000, rx:125,  ry:41.8, label:'H-244×175×7×11'},
+  'H248x124':{A:3540, d:248,bf:124,tw:5,  tf:8,  Ix:51.1e6,  Iy:2.55e6,  Zx:444000, Zy:41200,  rx:120,  ry:26.8, label:'H-248×124×5×8'},
+  'H250x125':{A:3665, d:250,bf:125,tw:6,  tf:9,  Ix:40.7e6,  Iy:2.94e6,  Zx:356000, Zy:47000,  rx:105,  ry:28.3, label:'H-250×125×6×9'},
+  'H294x200':{A:7170, d:294,bf:200,tw:8,  tf:12, Ix:192.0e6, Iy:16.0e6,  Zx:1390000,Zy:240000, rx:163,  ry:47.2, label:'H-294×200×8×12'},
+  'H298x149':{A:4020, d:298,bf:149,tw:5.5,tf:8,  Ix:99.3e6,  Iy:4.41e6,  Zx:703000, Zy:59200,  rx:157,  ry:33.1, label:'H-298×149×5.5×8'},
+  'H300x150':{A:4678, d:300,bf:150,tw:6.5,tf:9,  Ix:72.1e6,  Iy:5.08e6,  Zx:542000, Zy:101700, rx:124.1,ry:33.0, label:'H-300×150×6.5×9'},  // v5: Zx 506000→542000 (KS 규격 실제값)
+  'H340x250':{A:10170,d:340,bf:250,tw:9,  tf:14, Ix:366.0e6, Iy:36.5e6,  Zx:2313000,Zy:440000, rx:190,  ry:59.9, label:'H-340×250×9×14'},
+  'H350x175':{A:6390, d:350,bf:175,tw:7,  tf:11, Ix:211.0e6, Iy:9.85e6,  Zx:1294000,Zy:112000, rx:182,  ry:39.3, label:'H-350×175×7×11'},
+  'H390x300':{A:13600,d:390,bf:300,tw:10, tf:16, Ix:616.0e6, Iy:72.0e6,  Zx:3401000,Zy:720000, rx:213,  ry:72.7, label:'H-390×300×10×16'},
+  'H400x200':{A:8412, d:400,bf:200,tw:8,  tf:13, Ix:240.0e6, Iy:17.4e6,  Zx:1330000,Zy:263000, rx:168,  ry:45.5, label:'H-400×200×8×13'},  // v5: Zx 1254000→1330000, Ix 237→240 (KS 규격 실제값)
+  'H428x407':{A:36070,d:428,bf:407,tw:20, tf:35, Ix:2340.0e6,Iy:777.0e6, Zx:11968000,Zy:3817000,rx:255, ry:147,  label:'H-428×407×20×35'},
+  'H440x300':{A:15790,d:440,bf:300,tw:11, tf:18, Ix:889.0e6, Iy:81.0e6,  Zx:4365000,Zy:810000, rx:237,  ry:71.6, label:'H-440×300×11×18'},
+  'H450x200':{A:9650, d:450,bf:200,tw:9,  tf:14, Ix:337.0e6, Iy:18.7e6,  Zx:1612000,Zy:282000, rx:187,  ry:44.0, label:'H-450×200×9×14'},
+  'H500x200':{A:11400,d:500,bf:200,tw:10, tf:16, Ix:508.0e6, Iy:21.4e6,  Zx:2190000,Zy:322000, rx:211,  ry:43.3, label:'H-500×200×10×16'},
+  'H500x300':{A:17380,d:500,bf:300,tw:11, tf:18, Ix:1070.0e6,Iy:81.0e6,  Zx:4669000,Zy:810000, rx:248,  ry:68.3, label:'H-500×300×11×18'},
+  'H588x300':{A:19200,d:588,bf:300,tw:12, tf:20, Ix:1840.0e6,Iy:90.0e6,  Zx:6796000,Zy:900000, rx:310,  ry:68.5, label:'H-588×300×12×20'},
+  'H600x200':{A:13400,d:600,bf:200,tw:11, tf:17, Ix:776.0e6, Iy:22.7e6,  Zx:2800000,Zy:341000, rx:241,  ry:41.2, label:'H-600×200×11×17'},
+  // ── ㄷ형강 (KS D 3501) ── d=높이, bf=플랜지폭
+  'C75x40':  {A:797,  d:75, bf:40, tw:5,  tf:7,  Ix:0.512e6, Iy:0.0838e6,Zx:16700,  Zy:4200,   rx:25.3,ry:10.3, label:'C-75×40×5×7',   type:'C'},
+  'C100x50': {A:1170, d:100,bf:50, tw:5,  tf:7.5,Ix:1.87e6,  Iy:0.186e6, Zx:41200,  Zy:7100,   rx:39.9,ry:12.6, label:'C-100×50×5×7.5', type:'C'},
+  'C100x65': {A:1830, d:100,bf:65, tw:7,  tf:9.5,Ix:2.42e6,  Iy:0.527e6, Zx:55600,  Zy:15800,  rx:36.4,ry:17.0, label:'C-100×65×7×9.5', type:'C'},
+  'C120x60': {A:1700, d:120,bf:60, tw:6,  tf:8,  Ix:4.77e6,  Iy:0.312e6, Zx:87200,  Zy:9800,   rx:53.0,ry:13.5, label:'C-120×60×6×8',   type:'C'},
+  'C150x65': {A:2590, d:150,bf:65, tw:7,  tf:10.5,Ix:8.89e6, Iy:0.567e6, Zx:128600, Zy:16800,  rx:58.5,ry:14.8, label:'C-150×65×7×10.5',type:'C'},
+  'C150x75': {A:2760, d:150,bf:75, tw:6.5,tf:10, Ix:9.17e6,  Iy:0.851e6, Zx:133700, Zy:22100,  rx:57.6,ry:17.6, label:'C-150×75×6.5×10',type:'C'},
+  'C180x75': {A:3390, d:180,bf:75, tw:7,  tf:10.5,Ix:18.0e6, Iy:0.918e6, Zx:213800, Zy:23100,  rx:73.0,ry:16.5, label:'C-180×75×7×10.5',type:'C'},
+  'C200x80': {A:3910, d:200,bf:80, tw:7.5,tf:11, Ix:29.4e6,  Iy:1.18e6,  Zx:316400, Zy:27900,  rx:86.8,ry:17.3, label:'C-200×80×7.5×11',type:'C'},
+  'C230x90': {A:5230, d:230,bf:90, tw:8,  tf:12.5,Ix:55.9e6, Iy:2.21e6,  Zx:520800, Zy:47600,  rx:103,  ry:20.6, label:'C-230×90×8×12.5',type:'C'},
+  'C250x90': {A:5720, d:250,bf:90, tw:9,  tf:13, Ix:79.5e6,  Iy:2.45e6,  Zx:682500, Zy:52000,  rx:118,  ry:20.7, label:'C-250×90×9×13',  type:'C'},
+  'C300x90': {A:6310, d:300,bf:90, tw:9,  tf:13, Ix:169.0e6, Iy:2.45e6,  Zx:1221700,Zy:52000,  rx:164,  ry:19.7, label:'C-300×90×9×13',  type:'C'},
+  // ── 각형강관 SHS/RHS (KS D 3568, SRT275) ── tw=tf=t, d=h(높이), bf=b(폭)
+  'SHS60x3.2':  {A:731,  d:60, bf:60, tw:3.2,tf:3.2,Ix:0.390e6, Iy:0.390e6, Zx:14900,  Zy:14900,  rx:23.1,ry:23.1, label:'□-60×60×3.2',   type:'SHS'},
+  'SHS75x3.2':  {A:921,  d:75, bf:75, tw:3.2,tf:3.2,Ix:0.784e6, Iy:0.784e6, Zx:23700,  Zy:23700,  rx:29.2,ry:29.2, label:'□-75×75×3.2',   type:'SHS'},
+  'SHS100x3.2': {A:1250, d:100,bf:100,tw:3.2,tf:3.2,Ix:2.00e6,  Iy:2.00e6,  Zx:44800,  Zy:44800,  rx:40.0,ry:40.0, label:'□-100×100×3.2', type:'SHS'},
+  'SHS100x4.5': {A:1719, d:100,bf:100,tw:4.5,tf:4.5,Ix:2.62e6,  Iy:2.62e6,  Zx:57700,  Zy:57700,  rx:39.0,ry:39.0, label:'□-100×100×4.5', type:'SHS'},
+  'SHS125x4.5': {A:2169, d:125,bf:125,tw:4.5,tf:4.5,Ix:5.35e6,  Iy:5.35e6,  Zx:94700,  Zy:94700,  rx:49.7,ry:49.7, label:'□-125×125×4.5', type:'SHS'},
+  'SHS125x6.0': {A:2856, d:125,bf:125,tw:6,  tf:6,  Ix:6.74e6,  Iy:6.74e6,  Zx:118700, Zy:118700, rx:48.6,ry:48.6, label:'□-125×125×6.0', type:'SHS'},
+  'SHS150x4.5': {A:2619, d:150,bf:150,tw:4.5,tf:4.5,Ix:9.98e6,  Iy:9.98e6,  Zx:146800, Zy:146800, rx:61.7,ry:61.7, label:'□-150×150×4.5', type:'SHS'},
+  'SHS150x6.0': {A:3456, d:150,bf:150,tw:6,  tf:6,  Ix:12.8e6,  Iy:12.8e6,  Zx:187000, Zy:187000, rx:60.9,ry:60.9, label:'□-150×150×6.0', type:'SHS'},
+  'SHS175x6.0': {A:4056, d:175,bf:175,tw:6,  tf:6,  Ix:21.2e6,  Iy:21.2e6,  Zx:266000, Zy:266000, rx:72.3,ry:72.3, label:'□-175×175×6.0', type:'SHS'},
+  'SHS200x6.0': {A:4656, d:200,bf:200,tw:6,  tf:6,  Ix:34.3e6,  Iy:34.3e6,  Zx:375000, Zy:375000, rx:85.9,ry:85.9, label:'□-200×200×6.0', type:'SHS'},
+  'SHS200x8.0': {A:6144, d:200,bf:200,tw:8,  tf:8,  Ix:42.0e6,  Iy:42.0e6,  Zx:459000, Zy:459000, rx:82.7,ry:82.7, label:'□-200×200×8.0', type:'SHS'},
+  'SHS200x9.0': {A:6876, d:200,bf:200,tw:9,  tf:9,  Ix:46.2e6,  Iy:46.2e6,  Zx:504000, Zy:504000, rx:82.0,ry:82.0, label:'□-200×200×9.0', type:'SHS'},
+  'SHS250x8.0': {A:7744, d:250,bf:250,tw:8,  tf:8,  Ix:91.9e6,  Iy:91.9e6,  Zx:798000, Zy:798000, rx:109,  ry:109,  label:'□-250×250×8.0', type:'SHS'},
+  'SHS250x9.0': {A:8676, d:250,bf:250,tw:9,  tf:9,  Ix:101.0e6, Iy:101.0e6, Zx:878000, Zy:878000, rx:108,  ry:108,  label:'□-250×250×9.0', type:'SHS'},
+  'SHS250x12':  {A:11424,d:250,bf:250,tw:12, tf:12, Ix:128.0e6, Iy:128.0e6, Zx:1114000,Zy:1114000,rx:106,  ry:106,  label:'□-250×250×12.0',type:'SHS'},
+  'SHS300x9.0': {A:10476,d:300,bf:300,tw:9,  tf:9,  Ix:179.0e6, Iy:179.0e6, Zx:1286000,Zy:1286000,rx:131,  ry:131,  label:'□-300×300×9.0', type:'SHS'},
+  'SHS300x12':  {A:13824,d:300,bf:300,tw:12, tf:12, Ix:227.0e6, Iy:227.0e6, Zx:1630000,Zy:1630000,rx:128,  ry:128,  label:'□-300×300×12.0',type:'SHS'},
+  'SHS300x16':  {A:18176,d:300,bf:300,tw:16, tf:16, Ix:289.0e6, Iy:289.0e6, Zx:2085000,Zy:2085000,rx:126,  ry:126,  label:'□-300×300×16.0',type:'SHS'},
+  // RHS (직사각형)
+  'RHS100x50x3.2': {A:880, d:100,bf:50, tw:3.2,tf:3.2,Ix:1.30e6, Iy:0.369e6,Zx:30200,  Zy:15100,  rx:38.4,ry:20.5, label:'□-100×50×3.2',  type:'SHS'},
+  'RHS150x100x4.5':{A:2169,d:150,bf:100,tw:4.5,tf:4.5,Ix:6.28e6, Iy:2.55e6, Zx:94700,  Zy:54400,  rx:53.8,ry:34.3, label:'□-150×100×4.5', type:'SHS'},
+  'RHS200x100x6.0':{A:3456,d:200,bf:100,tw:6,  tf:6,  Ix:16.8e6, Iy:4.07e6, Zx:187000, Zy:85300,  rx:69.7,ry:34.3, label:'□-200×100×6.0', type:'SHS'},
+  'RHS200x150x6.0':{A:4056,d:200,bf:150,tw:6,  tf:6,  Ix:20.5e6, Iy:9.80e6, Zx:228000, Zy:140000, rx:71.2,ry:49.2, label:'□-200×150×6.0', type:'SHS'},
+  'RHS250x150x8.0':{A:6144,d:250,bf:150,tw:8,  tf:8,  Ix:60.3e6, Iy:19.3e6, Zx:519000, Zy:277000, rx:99.2,ry:56.1, label:'□-250×150×8.0', type:'SHS'},
+  'RHS300x200x9.0':{A:8676,d:300,bf:200,tw:9,  tf:9,  Ix:146.0e6,Iy:50.8e6, Zx:1053000,Zy:542000, rx:130,  ry:76.5, label:'□-300×200×9.0', type:'SHS'},
+};
+// 볼트 데이터베이스
+const BOLT={
+  M16:{d:16, Ab:201.1, Fnv:500, Fu:400, label:'M16 F10T'},
+  M20:{d:20, Ab:314.2, Fnv:500, Fu:400, label:'M20 F10T'},
+  M24:{d:24, Ab:452.4, Fnv:500, Fu:400, label:'M24 F10T'},
+};
+// 앵커볼트
+const ANCH={
+  M20:{d:20, As:245, futa:400, hef:500, label:'M20 J형'},
+  M24:{d:24, As:353, futa:400, hef:500, label:'M24 J형'},
+};
+
+const E=210000;
+let rotAngle=30;    // 수평 회전각 (°)
+let rotPitch=60;    // 앙각 (°) — 60° ≈ 위에서 내려다보는 시점
+let zoomScale=1.0;  // 줌 배율
+let panX=0, panY=0; // 마우스 중심 줌 오프셋
+let sc=1;            // 3D 투영 스케일 (draw3D에서 설정, setupCanvas3D에서 참조)
+let lastR={};
+let lastSite={};  // 현장 설정 저장
+let orbitCenter=[0,0,0]; // 3D 공전 중심 (클릭으로 설정)
+
+// ════════════════════════════════════════════════════
+// 현장 설정 함수
+// ════════════════════════════════════════════════════
+
+// 페이지 로드 시 시/도 목록 채우기
+function initLocationSelect(){
+  const sel = document.getElementById('sido');
+  Object.keys(REGION_DB).forEach(name=>{
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    sel.appendChild(opt);
+  });
+}
+
+// 시/도 변경 → 시/군/구 목록 갱신
+function updateSigungu(){
+  const sido = document.getElementById('sido').value;
+  const sg = document.getElementById('sigungu');
+  sg.innerHTML = '<option value="">-- 시/군/구 선택 --</option>';
+  if(sido && REGION_DB[sido]){
+    Object.keys(REGION_DB[sido]).forEach(name=>{
+      const opt = document.createElement('option');
+      opt.value = name; opt.textContent = name;
+      sg.appendChild(opt);
+    });
+  }
+  document.getElementById('loc-summary-mini').style.display='none';
+  document.getElementById('site-res').innerHTML=`
+    <div class="no-site">
+      <div class="no-icon">📍</div>
+      <p><strong>${sido||'시/도'}</strong>의 시/군/구를 선택해 주세요</p>
+      <small>선택 후 설하중·풍속·지역계수·내진설계범주가 자동 설정됩니다</small>
+    </div>`;
+  syncMapToSelection(); // [v23] 시/도만 바뀌어도 지도 중심 이동
+}
+
+// ════════════════════════════════════════════════════
+// [v23] 카카오맵 연동 — 시/도·시/군/구 ↔ 지도 깃발 양방향 동기화
+// ════════════════════════════════════════════════════
+let kakaoMap=null, kakaoMarker=null, kakaoGeocoder=null, kakaoSdkLoaded=false, mapSyncSuspend=false;
+
+// REGION_DB의 시/도 표기와 카카오 행정구역 표기가 다를 수 있는 경우(개편된 명칭) 보정
+const SIDO_ALIAS = {
+  "강원도":"강원특별자치도",
+  "전북특별자치도":"전라북도",
+  "전라북특별자치도":"전라북도"
+};
+function resolveSido(name){
+  if(!name) return null;
+  if(REGION_DB[name]) return name;
+  if(SIDO_ALIAS[name] && REGION_DB[SIDO_ALIAS[name]]) return SIDO_ALIAS[name];
+  return null;
+}
+// REGION_DB의 시/군/구 키는 "부평구·서구·남구 (도심)"처럼 여러 구를 묶거나 "●"/괄호 주석이 붙어
+// 있어, 지도 검색(주소→좌표) 또는 역지오코딩(좌표→주소) 시 그대로 쓸 수 없음 → 정제
+function cleanSigunguForGeocode(name){
+  let s = name.replace(/●/g,'').trim();
+  s = s.replace(/\(.*?\)/g,'').trim();
+  if(s.startsWith('전체')) return '';
+  s = s.split('·')[0].trim();
+  return s;
+}
+// 역지오코딩으로 받은 시/군/구명을 REGION_DB 키로 역매칭 (완전일치 → 묶음표기 내 포함 → 부분일치 → "전체")
+function findSigunguKey(sido, queryName){
+  const keys = Object.keys(REGION_DB[sido]||{});
+  if(!queryName) return null;
+  if(keys.includes(queryName)) return queryName;
+  for(const k of keys){
+    const parts = k.replace(/●/g,'').replace(/\(.*?\)/g,'').trim().split('·').map(s=>s.trim());
+    if(parts.includes(queryName)) return k;
+  }
+  for(const k of keys){
+    const clean = k.replace(/●/g,'').replace(/\(.*?\)/g,'').trim();
+    if(clean.includes(queryName) || queryName.includes(clean)) return k;
+  }
+  return keys.find(k=>k.startsWith('전체')) || null;
+}
+
+function loadKakaoSDK(){
+  const key = document.getElementById('kakaoKeyInput').value.trim();
+  if(!key){ alert('카카오 디벨로퍼스(developers.kakao.com)에서 발급받은 JavaScript 키를 입력해 주세요.'); return; }
+  localStorage.setItem('KAKAO_JS_KEY', key);
+  if(kakaoSdkLoaded){ initKakaoMap(); return; }
+  document.getElementById('mapStatus').textContent = '⏳ 지도 SDK 로딩 중...';
+  const script = document.createElement('script');
+  script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(key)}&libraries=services&autoload=false`;
+  script.onload = ()=>{ kakao.maps.load(()=>{ kakaoSdkLoaded=true; initKakaoMap(); }); };
+  script.onerror = ()=>{ document.getElementById('mapStatus').textContent = '⚠ 지도 SDK 로드 실패 — 키가 올바른지, 카카오 디벨로퍼스에서 해당 도메인이 플랫폼으로 등록되어 있는지 확인해 주세요.'; };
+  document.head.appendChild(script);
+}
+
+function initKakaoMap(){
+  const container = document.getElementById('kakaoMap');
+  container.innerHTML='';
+  const center = new kakao.maps.LatLng(36.34, 127.77); // 대한민국 중심 근사
+  kakaoMap = new kakao.maps.Map(container, {center, level:12});
+  kakaoGeocoder = new kakao.maps.services.Geocoder();
+  kakaoMarker = new kakao.maps.Marker({position:center, draggable:true});
+  kakaoMarker.setMap(kakaoMap);
+  kakao.maps.event.addListener(kakaoMarker, 'dragend', onMarkerDragEnd);
+  document.getElementById('mapStatus').textContent = '✅ 지도 활성화 완료 — 시/도·시/군/구 선택 시 깃발이 이동하고, 깃발을 직접 옮기면 시/도·시/군/구가 자동 설정됩니다.';
+  syncMapToSelection();
+}
+
+// 시/도·시/군/구 선택값 → 주소 검색 → 깃발 이동
+function syncMapToSelection(){
+  if(!kakaoMap || !kakaoGeocoder || mapSyncSuspend) return;
+  const sido = document.getElementById('sido').value;
+  const sigungu = document.getElementById('sigungu').value;
+  if(!sido) return;
+  const part = sigungu ? cleanSigunguForGeocode(sigungu) : '';
+  const addr = (sido + ' ' + part).trim();
+  kakaoGeocoder.addressSearch(addr, (result, status)=>{
+    if(status===kakao.maps.services.Status.OK && result[0]){
+      const pos = new kakao.maps.LatLng(result[0].y, result[0].x);
+      kakaoMarker.setPosition(pos); kakaoMap.setCenter(pos); kakaoMap.setLevel(part?7:10);
+    } else if(part){
+      // 시/군/구 검색 실패 시 시/도만으로 재시도
+      kakaoGeocoder.addressSearch(sido, (r2,s2)=>{
+        if(s2===kakao.maps.services.Status.OK && r2[0]){
+          const pos = new kakao.maps.LatLng(r2[0].y, r2[0].x);
+          kakaoMarker.setPosition(pos); kakaoMap.setCenter(pos); kakaoMap.setLevel(10);
+        }
+      });
+    }
+  });
+}
+
+// 깃발 드래그 종료 → 좌표→행정구역(역지오코딩) → 시/도·시/군/구 select 자동 갱신
+function onMarkerDragEnd(){
+  const pos = kakaoMarker.getPosition();
+  kakaoGeocoder.coord2RegionCode(pos.getLng(), pos.getLat(), (result, status)=>{
+    if(status!==kakao.maps.services.Status.OK || !result.length){
+      document.getElementById('mapStatus').textContent = '⚠ 해당 위치의 행정구역을 확인할 수 없습니다(국내 좌표인지 확인해 주세요).';
+      return;
+    }
+    const r = result.find(x=>x.region_type==='H') || result[0];
+    const sidoName = resolveSido(r.region_1depth_name);
+    if(!sidoName){
+      document.getElementById('mapStatus').textContent = `⚠ "${r.region_1depth_name}"은 DB에 없는 지역입니다 — 시/도를 직접 선택해 주세요. (실제 주소: ${r.address_name})`;
+      return;
+    }
+    const sigunguKey = findSigunguKey(sidoName, r.region_2depth_name);
+    mapSyncSuspend = true; // 드래그→select 갱신이 다시 지도 이동을 트리거하지 않도록 방지
+    document.getElementById('sido').value = sidoName;
+    updateSigungu();
+    if(sigunguKey){
+      document.getElementById('sigungu').value = sigunguKey;
+      applyLocation();
+      document.getElementById('mapStatus').textContent = `📍 ${sidoName} ${sigunguKey} 로 자동 설정됨 (실제 주소: ${r.address_name})`;
+    } else {
+      document.getElementById('mapStatus').textContent = `⚠ ${sidoName}의 세부 지역(${r.region_2depth_name})을 DB와 정확히 매칭하지 못했습니다 — 시/군/구를 직접 선택해 주세요. (실제 주소: ${r.address_name})`;
+    }
+    mapSyncSuspend = false;
+  });
+}
+
+// 내진설계범주 계산 (KDS 41 17 00 간략화)
+function calcIDC(Z, soil, grade){
+  const Fa = {S1:.8, S2:1.0, S3:1.2, S4:1.6, S5:2.5}[soil] || 1.0;
+  const SDS = Fa * Z;  // 보수적 (2/3 계수 미적용)
+  let idc = (SDS < 0.17) ? 'C' : 'D';
+  if(grade==='I' && idc==='C') idc='D';  // 내진등급 I → 최소 D
+  return idc;
+}
+
+// 현장 적용 (자동 설하중 계산 + 화면 업데이트)
+function applyLocation(resetSoil=true){
+  const sido = document.getElementById('sido').value;
+  const sigungu = document.getElementById('sigungu').value;
+  if(!sido || !sigungu) return;
+
+  const data = REGION_DB[sido]?.[sigungu];
+  if(!data) return;
+
+  // 지반종류: 위치 변경 시에만 DB 기본값 리셋, 드롭다운 변경 시는 현재값 유지
+  if(resetSoil) document.getElementById('siteClass').value = data.soil;
+
+  const grade = document.getElementById('seismicGrade').value;
+  const soil  = document.getElementById('siteClass').value;  // 항상 드롭다운 현재값 사용
+  const idc   = calcIDC(data.Z, soil, grade);
+
+  // 중요도계수
+  const IE = grade==='I' ? 1.2 : 1.0;
+  const Is = grade==='I' ? 1.1 : 1.0;
+
+  // 적설하중 계산: Sf = Cb × Ce × Ct × Is × Sg (KDS 41 12 00)
+  const Cb=0.7, Ce=1.0;
+  const CtEl = document.getElementById('Ct');
+  const Ct = CtEl ? +CtEl.value : 1.2;  // 기본 1.2 (비난방/모듈러)
+  const Sf = Math.round(Cb*Ce*Ct*Is*data.Sg*100)/100;
+
+  // wSL 자동 입력
+  document.getElementById('wSL').value = Sf.toFixed(2);
+
+  // 현장 데이터 저장
+  const windExp = document.getElementById('windExp').value;
+  const R = parseFloat(document.getElementById('Rfactor').value);
+  lastSite = {sido, sigungu, ...data, soil, grade, idc, IE, Is, Sf, Cb, Ce, Ct, windExp, R};
+
+  // 좌측 패널 요약 표시
+  const mini = document.getElementById('loc-summary-mini');
+  mini.style.display = 'block';
+  document.getElementById('loc-mini-tbl').innerHTML = `
+    <tr><td>📦 설하중 Sg</td><td>${data.Sg} kN/m² → <strong>Sf = ${Sf} kN/m²</strong></td></tr>
+    <tr><td>💨 풍속 Vb</td><td><strong>${data.Vb} m/s</strong> | 노풍도 ${windExp}</td></tr>
+    <tr><td>📐 지역계수 S</td><td><strong>${data.Z}g</strong></td></tr>
+    <tr><td>🔴 내진범주</td><td><strong>${idc}</strong> (지반 ${soil}, ${grade}등급)</td></tr>`;
+
+  // 현장 탭 렌더링
+  renderSite();
+
+  // 현장 탭으로 자동 전환
+  document.querySelectorAll('.tcontent').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('t-site').classList.add('active');
+  document.querySelector('.tab').classList.add('active');
+
+  syncMapToSelection(); // [v23] 시/군/구 선택 결과를 지도 깃발에 반영
+}
+
+// 현장 탭 렌더링
+
+// 지표면 조도구분·반응수정계수 변경 시 현장 탭 즉시 반영
+function updateSiteInputs(){
+  if(!lastSite || !lastSite.sido) return;  // 현장 미선택 시 무시
+  lastSite.windExp = document.getElementById('windExp').value;
+  lastSite.R       = parseFloat(document.getElementById('Rfactor').value);
+  // 미니패널 노풍도 업데이트
+  const tbl = document.getElementById('loc-mini-tbl');
+  if(tbl){
+    const rows = tbl.querySelectorAll('tr');
+    rows.forEach(tr=>{
+      if(tr.textContent.includes('풍속 Vb')){
+        tr.cells[1].innerHTML = `<strong>${lastSite.Vb} m/s</strong> | 노풍도 ${lastSite.windExp}`;
+      }
+    });
+  }
+  renderSite();
+}
+function renderSite(){
+  const s = lastSite;
+  if(!s.sido){
+    document.getElementById('site-res').innerHTML=`
+      <div class="no-site">
+        <div class="no-icon">📍</div>
+        <p>좌측 패널에서 <strong>현장 위치</strong>를 선택하세요</p>
+        <small>시/도 → 시/군/구 선택 시 설하중·풍하중·지진하중 기준값이 자동으로 설정됩니다</small>
+      </div>`;
+    return;
+  }
+
+  const Fa = {S1:.8, S2:1.0, S3:1.2, S4:1.6, S5:2.5}[s.soil] || 1.0;
+  const SDS = (Fa * s.Z).toFixed(3);
+  const idcColor = s.idc==='D'?'#c62828':s.idc==='C'?'#e65100':'#43a047';
+  const idcBadgeCls = 'idc-'+s.idc;
+  const verifiedNote = s.sigungu.includes('●') ? '<span style="color:#2e7d32;font-size:11px;">● 실제 프로젝트 검증값</span>' : '<span style="color:#888;font-size:11px;">KDS 기준 추정값</span>';
+  const windExp = s.windExp || document.getElementById('windExp').value || 'C';
+  const R = s.R || parseFloat(document.getElementById('Rfactor').value) || 3.0;
+
+  document.getElementById('site-res').innerHTML = `
+
+  <!-- ★ 설계팀 전달용 요약 카드 ★ -->
+  <div class="card" style="border:2px solid #1565c0;">
+    <div class="card-hdr" style="background:#1565c0;color:#fff;">
+      📋 설계 하중 요약 — ${s.sido} ${s.sigungu.replace(' ●','')}
+      &nbsp;${verifiedNote}
+    </div>
+    <div class="card-body" style="padding:14px 16px;">
+
+      <!-- 1. 적설하중 -->
+      <div style="margin-bottom:14px;">
+        <div style="font-size:12px;font-weight:700;color:#1565c0;border-bottom:1px solid #bbdefb;padding-bottom:3px;margin-bottom:6px;">1. 적설하중</div>
+        <table style="margin:0;width:100%;">
+          <tr>
+            <th style="text-align:left;width:65%;">평지붕 설하중 Sf</th>
+            <th style="text-align:center;">값</th>
+            <th style="text-align:left;">단위</th>
+          </tr>
+          <tr>
+            <td class="left-td">Sf = Cb×Ce×Ct×Is×Sg = ${s.Cb}×${s.Ce}×${s.Ct}×${s.Is}×${s.Sg}</td>
+            <td style="text-align:center;font-weight:700;color:#1565c0;font-size:15px;">${s.Sf}</td>
+            <td class="left-td">kN/m²</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- 2. 풍하중 -->
+      <div style="margin-bottom:14px;">
+        <div style="font-size:12px;font-weight:700;color:#00695c;border-bottom:1px solid #b2dfdb;padding-bottom:3px;margin-bottom:6px;">2. 풍하중</div>
+        <table style="margin:0;width:100%;">
+          <tr>
+            <th style="text-align:left;">설계기본풍속</th>
+            <th style="text-align:left;">지표면조도구분 (노풍도)</th>
+            <th style="text-align:left;">중요도계수</th>
+          </tr>
+          <tr>
+            <td class="left-td" style="font-weight:700;">${s.Vb} m/s</td>
+            <td class="left-td" style="font-weight:700;">${windExp}</td>
+            <td class="left-td" style="font-weight:700;">${s.IE}</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- 3. 지진하중 -->
+      <div style="margin-bottom:4px;">
+        <div style="font-size:12px;font-weight:700;color:#b71c1c;border-bottom:1px solid #ffcdd2;padding-bottom:3px;margin-bottom:6px;">3. 지진하중</div>
+        <table style="margin:0;width:100%;">
+          <tr>
+            <th style="text-align:left;">내진등급</th>
+            <th style="text-align:left;">중요도계수</th>
+            <th style="text-align:left;">지반종류</th>
+            <th style="text-align:left;">지역계수 (S=g)</th>
+            <th style="text-align:left;">내진설계범주</th>
+            <th style="text-align:left;">반응수정계수 (R)</th>
+          </tr>
+          <tr>
+            <td class="left-td" style="font-weight:700;">${s.grade}</td>
+            <td class="left-td" style="font-weight:700;">${s.IE}</td>
+            <td class="left-td" style="font-weight:700;">${s.soil}</td>
+            <td class="left-td" style="font-weight:700;">${s.Z}</td>
+            <td class="left-td" style="font-weight:700;color:${idcColor};">${s.idc}</td>
+            <td class="left-td" style="font-weight:700;">${R}</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 현장 기본 정보 -->
+  <div class="card">
+    <div class="card-hdr" style="background:#1a6b3a;color:#fff;">
+      📍 현장 위치: ${s.sido} / ${s.sigungu.replace(' ●','')}
+      <span class="badge" style="background:rgba(255,255,255,0.25);">내진등급 ${s.grade}</span>
+      <span class="badge" style="background:rgba(255,255,255,0.25);">지반 ${s.soil}</span>
+      ${verifiedNote}
+    </div>
+    <div class="card-body">
+      <div class="site-grid4">
+        <div class="site-box site-box-snow">
+          <div class="s-cat">기본 지상 설하중 Sg</div>
+          <div class="s-val">${s.Sg}</div>
+          <div class="s-unit">kN/m²</div>
+          <div class="s-sub">KDS 41 12 00</div>
+        </div>
+        <div class="site-box site-box-snow">
+          <div class="s-cat">평지붕 설하중 Sf <small>(자동계산)</small></div>
+          <div class="s-val">${s.Sf}</div>
+          <div class="s-unit">kN/m²</div>
+          <div class="s-sub">wSL에 자동 입력됨</div>
+        </div>
+        <div class="site-box site-box-wind">
+          <div class="s-cat">설계 기본 풍속 Vb</div>
+          <div class="s-val">${s.Vb}</div>
+          <div class="s-unit">m/s</div>
+          <div class="s-sub">노풍도: ${windExp} (기본)</div>
+        </div>
+        <div class="site-box site-box-wind">
+          <div class="s-cat">지역계수 S</div>
+          <div class="s-val">${s.Z}g</div>
+          <div class="s-unit">KDS 41 17 00</div>
+          <div class="s-sub">${s.Z===0.22?'지진구역 I':s.Z===0.15?'강원권':s.Z===0.11?'전라·제주권':'—'}</div>
+        </div>
+      </div>
+      <div style="text-align:center;margin-bottom:14px;">
+        <div style="font-size:12px;color:#555;margin-bottom:6px;">내진설계범주 (IDC)</div>
+        <span class="idc-badge ${idcBadgeCls}">${s.idc}</span>
+        <div style="font-size:11px;color:#888;margin-top:6px;">지반 ${s.soil}, 내진등급 ${s.grade}, SDS = Fa×S = ${Fa}×${s.Z} = ${SDS}</div>
+      </div>
+      <div class="warn-box" style="margin:0;">
+        ⚠ 지반종류(${s.soil})는 주소 기반 추정값입니다. 반드시 지반조사 보고서로 확인 후 사용하세요.<br>
+        지반이 변경되면 좌측 '지반종류' 드롭다운에서 수정 후 현장 적용 버튼을 다시 누르세요.
+      </div>
+    </div>
+  </div>
+
+  <!-- 설하중 상세 -->
+  <div class="card">
+    <div class="card-hdr">❄ 적설하중 산정 <span class="badge">KDS 41 12 00</span></div>
+    <div class="card-body">
+      <div class="site-formula-box">
+        <div style="font-size:11px;color:#666;margin-bottom:4px;">평지붕 적설하중 계산식 (KDS 41 12 00 식 4.5-1)</div>
+        <div class="formula">Sf = Cb × Ce × Ct × Is × Sg</div>
+        <div style="font-size:13px;font-weight:bold;color:#1565c0;text-align:center;">
+          Sf = ${s.Cb} × ${s.Ce} × ${s.Ct} × ${s.Is} × ${s.Sg} = <span style="color:#c62828;">${s.Sf} kN/m²</span>
+        </div>
+      </div>
+      <table style="margin-bottom:10px;">
+        <tr><th>계수</th><th>기호</th><th>적용값</th><th>설명</th></tr>
+        <tr><td class="left-td">기본지붕적설하중계수</td><td>Cb</td><td>${s.Cb}</td><td class="left-td">평지붕 (0° ≤ θ ≤ 5°)</td></tr>
+        <tr><td class="left-td">노출계수</td><td>Ce</td><td>${s.Ce}</td><td class="left-td">보통 노출 (지붕 차폐 없음)</td></tr>
+        <tr><td class="left-td">온도계수</td><td>Ct</td><td>${s.Ct}</td><td class="left-td">${s.Ct>=1.3?'냉동창고 (Ct=1.3)':s.Ct>=1.2?'비난방/모듈러 (Ct=1.2)':'난방 건물 (Ct=1.0)'}</td></tr>
+        <tr><td class="left-td">중요도계수 (설하중)</td><td>Is</td><td>${s.Is}</td><td class="left-td">내진등급 ${s.grade} (${s.grade==='I'?'Is=1.1':'Is=1.0'})</td></tr>
+        <tr><td class="left-td">기본 지상 설하중</td><td>Sg</td><td><strong>${s.Sg} kN/m²</strong></td><td class="left-td">${s.sido} ${s.sigungu.replace(' ●','')}</td></tr>
+        <tr style="background:#e3f2fd;"><td class="left-td"><strong>평지붕 설하중</strong></td><td><strong>Sf</strong></td><td><strong style="color:#1565c0;">${s.Sf} kN/m²</strong></td><td class="left-td">→ 좌측 wSL에 자동 입력</td></tr>
+      </table>
+      <div class="info" style="margin-bottom:0;">경사지붕(θ > 15°)의 경우 Ss = Sf × Cs 적용 필요. Cs = 경사각 계수 (KDS 41 12 00 4.5.3)</div>
+      <div class="site-ref">참조: KDS 41 12 00 4.5절 적설하중</div>
+    </div>
+  </div>
+
+  <!-- 풍하중 기준값 -->
+  <div class="card">
+    <div class="card-hdr">💨 풍하중 기준값 <span class="badge">KDS 41 12 00</span></div>
+    <div class="card-body">
+      <table style="margin-bottom:10px;">
+        <tr><th>항목</th><th>값</th><th>비고</th></tr>
+        <tr><td class="left-td">설계 기본 풍속 Vb</td><td><strong>${s.Vb} m/s</strong></td><td class="left-td">KDS 41 12 00 풍속도 기준</td></tr>
+        <tr><td class="left-td">지표면 조도구분</td><td><strong>${windExp}</strong></td><td class="left-td">C: 수목·낮은건물 있는 교외지역</td></tr>
+        <tr><td class="left-td">중요도계수 (풍하중) Iw</td><td><strong>${s.IE}</strong></td><td class="left-td">내진등급 ${s.grade}</td></tr>
+        <tr><td class="left-td">설계 풍속 V</td><td><strong>${s.Vb} × √${s.IE} = ${(s.Vb*Math.sqrt(s.IE)).toFixed(1)} m/s</strong></td><td class="left-td">V = Vb × √Iw</td></tr>
+      </table>
+      <div class="warn-box" style="margin-bottom:0;">
+        ⚡ 풍하중 상세 계산(풍압계수, 노출계수 Kz, 가스트계수 Gf 등)은 별도 검토가 필요합니다. 이 프로그램에서는 기준값 참조용으로만 사용됩니다.
+      </div>
+      <div class="site-ref">참조: KDS 41 12 00 5절 풍하중</div>
+    </div>
+  </div>
+
+  <!-- 지진하중 기준값 -->
+  <div class="card">
+    <div class="card-hdr">🔴 지진하중 기준값 <span class="badge ${s.idc==='D'?'badge-red':s.idc==='C'?'badge-orange':'badge-green'}">IDC ${s.idc}</span> <span class="badge">KDS 41 17 00</span></div>
+    <div class="card-body">
+      <table style="margin-bottom:10px;">
+        <tr><th>항목</th><th>값</th><th>비고</th></tr>
+        <tr><td class="left-td">지역계수 S (≈ Ss)</td><td><strong>${s.Z}g</strong></td><td class="left-td">단주기 스펙트럼 가속도 기준</td></tr>
+        <tr><td class="left-td">지반종류</td><td><strong>${s.soil}</strong></td><td class="left-td">추정값 — 지반조사 확인 필요</td></tr>
+        <tr><td class="left-td">지반증폭계수 Fa</td><td><strong>${Fa}</strong></td><td class="left-td">KDS 41 17 00 표 (${s.soil} 기준)</td></tr>
+        <tr><td class="left-td">설계스펙트럼 SDS</td><td><strong>${SDS}g</strong></td><td class="left-td">Fa × S = ${Fa} × ${s.Z}</td></tr>
+        <tr><td class="left-td">내진등급</td><td><strong>${s.grade}등급</strong></td><td class="left-td">${s.grade==='I'?'특급시설 (IE=1.2)':'일반시설 (IE=1.0)'}</td></tr>
+        <tr><td class="left-td">내진중요도계수 IE</td><td><strong>${s.IE}</strong></td><td class="left-td">KDS 41 17 00 4.3.1</td></tr>
+        <tr style="background:#ffebee;"><td class="left-td"><strong>내진설계범주 IDC</strong></td><td><strong style="color:${idcColor};">${s.idc}</strong></td><td class="left-td">지반 ${s.soil} + 등급 ${s.grade} 기준</td></tr>
+      </table>
+
+      <div style="font-size:11px;color:#555;font-weight:bold;margin-bottom:6px;">반응수정계수 R (구조 형식별)</div>
+      <table style="margin-bottom:10px;">
+        <tr><th>구조 시스템</th><th>R</th><th>적용</th></tr>
+        <tr ${document.getElementById('Rfactor').value==='3.0'?'style="background:#fff8e1;"':''}><td class="left-td">일반 모듈러 (군용 표준)</td><td><strong>3.0</strong></td><td class="left-td">${document.getElementById('Rfactor').value==='3.0'?'← 현재 선택':'보수적 설계'}</td></tr>
+        <tr ${document.getElementById('Rfactor').value==='6.0'?'style="background:#fff8e1;"':''}><td class="left-td">철골 특수 중심가새골조 (SCBF)</td><td><strong>6.0</strong></td><td class="left-td">${document.getElementById('Rfactor').value==='6.0'?'← 현재 선택':''}</td></tr>
+        <tr ${document.getElementById('Rfactor').value==='8.0'?'style="background:#fff8e1;"':''}><td class="left-td">철골 특수 모멘트골조 (SMF)</td><td><strong>8.0</strong></td><td class="left-td">${document.getElementById('Rfactor').value==='8.0'?'← 현재 선택':''}</td></tr>
+      </table>
+      <div class="info" style="margin-bottom:8px;">
+        층간변위 허용값: 풍하중 = <strong>층고/500</strong> (실무 적용, 100년 재현주기) | 지진하중(IDC ${s.idc}) = 층고 × 0.015 (KDS 41 17 00)
+      </div>
+      <div class="warn-box" style="margin-bottom:0;">
+        ⚡ 설계지진하중 산정 (밑면전단력 V = Cs×W) 및 동적해석은 구조해석 프로그램(ETABS, MIDAS 등)으로 별도 수행이 필요합니다.
+      </div>
+      <div class="site-ref">참조: KDS 41 17 00 | 허용변위: 구조검토 Q&A 메모 참조</div>
+    </div>
+  </div>`;
+}
+
+// 복도 배치 정보 업데이트
+function updateCorridorInfo(){
+  const type = (document.getElementById('corridorType')||{value:'double'}).value;
+  const Lx = +((document.getElementById('Lx')||{value:3900}).value);
+  const Ly = +((document.getElementById('Ly')||{value:5150}).value);
+  const Lc = +((document.getElementById('Lc')||{value:2400}).value);
+  const nX = +((document.getElementById('nX')||{value:7}).value);
+  const nY = +((document.getElementById('nY')||{value:1}).value);
+  const infoEl = document.getElementById('corridor-info');
+  if(!infoEl) return;
+  let totalW=0, totalD=0, desc='';
+  if(type==='double'){
+    totalW = nX * Lx;
+    totalD = (nY * 2 * Ly) + Lc;
+    desc = `중복도 마주보기: 세대 ${nX}개 × ${(Lx/1000).toFixed(2)}m = <b>${(totalW/1000).toFixed(2)}m</b> (X방향) | `;
+    desc += `세대 ${nY}열 × 2 × ${(Ly/1000).toFixed(2)}m + 복도 길이 ${(Lc/1000).toFixed(2)}m(<b>모듈측 ${(Lc/2/1000).toFixed(2)}m×2</b>) = <b>${(totalD/1000).toFixed(2)}m</b> (Y방향)`;
+    desc += ` | 건물 연면적/층 ≈ <b>${((totalW*totalD)/1e6).toFixed(1)} m²</b>`;
+  } else if(type==='single'){
+    totalW = nX * Lx;
+    totalD = (nY * Ly) + Lc;
+    desc = `편복도: 세대 ${nX}개 × ${(Lx/1000).toFixed(2)}m = <b>${(totalW/1000).toFixed(2)}m</b> (X방향) | `;
+    desc += `세대 ${nY}열 × ${(Ly/1000).toFixed(2)}m + 복도 ${(Lc/1000).toFixed(2)}m = <b>${(totalD/1000).toFixed(2)}m</b> (Y방향)`;
+  } else {
+    totalW = nX * Lx;
+    totalD = nY * Ly;
+    desc = `단독 세대: ${nX} × ${(Lx/1000).toFixed(2)}m = <b>${(totalW/1000).toFixed(2)}m</b> | ${nY} × ${(Ly/1000).toFixed(2)}m = <b>${(totalD/1000).toFixed(2)}m</b>`;
+  }
+  infoEl.innerHTML = desc;
+  infoEl.style.display = 'block';
+  // 복도 길이 힌트 업데이트
+  const hint = document.getElementById('lc-hint');
+  if(hint){
+    if(type==='double') hint.textContent='(전체 길이, 모듈측 Lc/2씩 제작)';
+    else if(type==='single') hint.textContent='(복도 전체 길이)';
+    else hint.textContent='';
+  }
+}
+
+// ════ 계산 메인 ════
+function calc(){
+  const Lx=+gv('Lx'), Ly=+gv('Ly'), Hz=+gv('Hz'), nF=+gv('nFloor');
+  const Lc=+(document.getElementById('Lc')||{value:2400}).value||2400;
+  const nX=+(document.getElementById('nX')||{value:7}).value||7;
+  const nY=+(document.getElementById('nY')||{value:1}).value||1;
+  const corridorType=(document.getElementById('corridorType')||{value:'double'}).value;
+  const FyC=+gv('matCol'), FyB=+gv('matBeam');
+  const connType=(document.getElementById('connType')||{value:'fixed'}).value;
+  const fck=+gv('fck'), tS=+gv('tSlab');
+  const gammaConc=+(document.getElementById('gammaConc')||{value:24}).value||24;
+  const deflectLimitN=+(document.getElementById('deflectLimit')||{value:300}).value||300;
+  const wDLa=+gv('wDLa'), wLL=+gv('wLL'), wSL=+gv('wSL'), wPart=+gv('wPart');
+  const sC=SEC[gv('secCol')], sTop=SEC[gv('secTop')], sBot=SEC[gv('secBot')];
+  const bJ=BOLT[gv('boltJP')], nBJ=+gv('nBoltJP');
+  const bA=ANCH[gv('boltAnc')], nA=+gv('nAnc');
+
+  const wDLslab = gammaConc*tS/1000;  // v5: 콘크리트 밀도 사용자 선택 (24 or 25 kN/m³)
+  const wDL = wDLslab + wDLa + wPart;
+  const wu = 1.2*wDL + 1.6*wLL;
+  const ws = wDL + wLL;
+  const wu_roof = 1.2*wDL + 1.6*wSL;
+
+  // ── 슬래브 ──
+  const Lx_eff = Lx - 200;
+  const As_sl=634, db_sl=13, cov_sl=30;
+  const d_sl = tS - cov_sl - db_sl/2;
+  const Ec_sl = 8500 * Math.cbrt(fck + 4); // 콘크리트 탄성계수 MPa (KDS 14 20 10)
+  const a_sl = As_sl*400/(0.85*fck*1000);  // 등가압축블록 깊이 mm (단위폭 b=1000mm)
+  const phiMn_sl = 0.85*As_sl*400*(d_sl - a_sl/2)/1e6; // kN·m/m
+  const Mu_sl = wu * Lx_eff**2 / 8e6;     // kN·m/m (wu=kN/m², Lx_eff=mm)
+  const Vu_sl = wu * Lx_eff / 2 / 1e3;    // kN/m
+  const phiVn_sl = 0.75*0.17*Math.sqrt(fck)*1000*d_sl/1000; // kN/m
+  const Isl = 1000 * tS**3 / 12;           // mm⁴ (1000mm 폭 단면2차모멘트)
+  const delta_sl = 5 * ws * Lx_eff**4 / (384 * Ec_sl * Isl); // mm
+  const R_Msl = Mu_sl / phiMn_sl;
+  const R_Vsl = Vu_sl / phiVn_sl;
+  const R_dsl = delta_sl / (Lx_eff / deflectLimitN);
+
+  // ── 상부보 (Top Beam, X·Y 공통) — 천장 고정하중만 ──
+  const wu_top = 1.2*wDLa;   // 상부보 계수하중: 천장 마감재 DL만 (슬래브·활하중 미포함)
+  const ws_top = wDLa;
+  const hw_Top = sTop.d - 2*sTop.tf;
+  const Aw_Top = sTop.d * sTop.tw;
+  const lim_Top = 2.24*Math.sqrt(E/FyB);
+  const phiv_Top = (hw_Top/sTop.tw <= lim_Top) ? 1.0 : 0.9;
+  const phiMn_Top = 0.9*FyB*sTop.Zx /1e6;
+  const phiVn_Top = phiv_Top*0.6*FyB*Aw_Top /1e3;
+  // 상부보 Y방향 (span=Ly, trib=Lx)
+  const tribTopY = Lx;
+  const WuTopY = wu_top * tribTopY/1000;
+  const WsTopY = ws_top * tribTopY/1000;
+  const Mu_TopY = connType==='fixed' ? WuTopY*Ly**2/12/1e6 : WuTopY*Ly**2/8/1e6;
+  const Vu_TopY = WuTopY*Ly/2/1e3;
+  const delta_TopY = connType==='fixed' ? WsTopY*(Ly**4)/(384*E*sTop.Ix) : 5*WsTopY*(Ly**4)/(384*E*sTop.Ix);
+  const dallow_TopY = Ly/deflectLimitN;
+  const R_MTopY=Mu_TopY/phiMn_Top, R_VTopY=Vu_TopY/phiVn_Top, R_dTopY=delta_TopY/dallow_TopY;
+  // 상부보 X방향 (span=Lx, trib=Ly/2)
+  const tribTopX = Ly/2;
+  const WuTopX = wu_top * tribTopX/1000;
+  const WsTopX = ws_top * tribTopX/1000;
+  const Mu_TopX = connType==='fixed' ? WuTopX*Lx**2/12/1e6 : WuTopX*Lx**2/8/1e6;
+  const Vu_TopX = WuTopX*Lx/2/1e3;
+  const delta_TopX = connType==='fixed' ? WsTopX*(Lx**4)/(384*E*sTop.Ix) : 5*WsTopX*(Lx**4)/(384*E*sTop.Ix);
+  const dallow_TopX = Lx/deflectLimitN;
+  const R_MTopX=Mu_TopX/phiMn_Top, R_VTopX=Vu_TopX/phiVn_Top, R_dTopX=delta_TopX/dallow_TopX;
+
+  // ── 하부보 (Bottom Beam, X·Y 공통) — 바닥 전하중 ──
+  // [v19] 참조 구조계산서(3건) 검토 결과: 하부보는 실제로 기둥에 전단(핀) 접합되며(모멘트 비전달),
+  // 데크슬래브 콘크리트가 스터드를 통해 상부 플랜지와 합성되어 거동함 → 별도 기준(합성단면) 적용.
+  // [v20] 사용자 확인(기둥 배치 실측): 편복도형은 세대(Ly)+복도(Lc) 경계에 중간기둥 1개 추가(기둥 총 6개)
+  //  → 2경간 연속보. 중간복도형은 세대(Ly)+복도(Lc)+세대(Ly) 양쪽 경계에 중간기둥 추가(기둥 총 8개)
+  //  → 대칭 3경간 연속보. 기둥-보 접합 자체는 전단(핀)이라도, 보가 중간기둥으로 지지되는 한
+  //  거동은 연속보이므로 3연모멘트법(Three-Moment Equation)으로 정모멘트·처짐을 저감하고,
+  //  지점부(중간기둥 상단)는 슬래브 콘크리트가 인장측이라 합성효과를 배제한 비합성(강재 단독)
+  //  부모멘트로 별도 검토한다. ※ 부모멘트 구간 하부플랜지 압축측 횡좌굴(LTB) 보강 필요 여부는
+  //  별도 검토 필요(본 프로그램은 단면 항복강도만 비교, LTB 미반영 — 시공 전 기술사 확인 권장).
+  // ① 합성보 설계휨강도 φMn (AISC 단순 완전합성 정모멘트, 콘크리트 압괴 전 PNA가 슬래브 내부에 있다고 가정)
+  const hw_Bot = sBot.d - 2*sBot.tf;
+  const Aw_Bot = sBot.d * sBot.tw;
+  const lim_Bot = 2.24*Math.sqrt(E/FyB);
+  const phiv_Bot = (hw_Bot/sBot.tw <= lim_Bot) ? 1.0 : 0.9;
+  const phiMn_Bot_bare = 0.9*FyB*sBot.Zx /1e6; // 비합성(강재 단독) — 연속보 지점부(음모멘트) 검토용
+  const phiVn_Bot = phiv_Bot*0.6*FyB*Aw_Bot /1e3;
+  const T_Bot = sBot.A * FyB; // N, 강재 전단면 항복(완전합성 가정)
+  function compositePhiMn(span, trib){
+    const beff = Math.min(span/4, trib); // mm
+    const a = T_Bot/(0.85*fck*beff); // mm, 등가 콘크리트 압축대 깊이
+    if(a >= tS){ // PNA가 슬래브를 벗어나면(드문 경우) 보수적으로 비합성 강도 사용
+      return {phiMn:phiMn_Bot_bare, beff, a, composite:false};
+    }
+    const ybar = sBot.d/2 + tS - a/2; // mm, 강재 도심~콘크리트 압축력 작용점 거리
+    return {phiMn:0.9*T_Bot*ybar/1e6, beff, a, composite:true};
+  }
+  // ①-1 [v22] 처짐 검토용 합성 환산단면2차모멘트 Itr (AISC 하한구속 탄성환산법)
+  //   휨강도(phiMn)는 이미 합성거동(슬래브+강재)을 가정하므로, 처짐도 동일 가정과 일관되게
+  //   강재 단독 Ix가 아닌 합성 환산단면 Itr을 사용해야 함. (v21까지는 강재 단독 Ix만 사용 → 처짐 과대산정 원인)
+  const Ec_Bot = 4700*Math.sqrt(fck);      // MPa, 콘크리트 탄성계수(KDS 14 20:2022)
+  const nMod_Bot = E/Ec_Bot;               // 강재/콘크리트 탄성계수비
+  function compositeItr(span, trib){
+    const beff = Math.min(span/4, trib);            // mm, compositePhiMn과 동일한 유효폭 가정
+    const Atr_slab = beff*tS/nMod_Bot;               // mm², 슬래브를 강재로 환산한 등가단면적
+    const yBot_steel = sBot.d/2;                     // mm, 강재 도심(보 하단 기준)
+    const yBot_slab  = sBot.d + tS/2;                // mm, 슬래브 도심(보 하단 기준)
+    const At = sBot.A + Atr_slab;
+    const yBar = (sBot.A*yBot_steel + Atr_slab*yBot_slab)/At; // mm, 합성단면 중심(보 하단 기준)
+    const Itr = sBot.Ix + sBot.A*(yBar-yBot_steel)**2
+              + Atr_slab*tS*tS/12 + Atr_slab*(yBar-yBot_slab)**2; // mm⁴
+    return {Itr, beff, Atr_slab};
+  }
+  // ② 연속보 해석 헬퍼 (3연모멘트법, N·mm 단위 내부 계산)
+  function momentsOneEnd(L,w,Ms){ // 한쪽 끝 단순(M=0, 원위단), 반대쪽 끝(근위단=중간기둥측) 부모멘트 Ms 작용
+    // [v21] 버그 수정: M(x)=Rfar*x - w*x²/2, 경계조건 M(L)=-Ms 로 풀면
+    //  Rfar(원위단 반력, 작음) = wL/2 - Ms/L,  Rnear(근위단 반력, 큼) = wL/2 + Ms/L.
+    //  기존 코드는 이 두 반력의 라벨이 뒤바뀌어 있어 정모멘트(Mpos)를 Rnear²/(2w)로 계산하던 것과 동일한 결과를
+    //  냈고(원위단이 아닌 근위단 반력을 사용), 이로 인해 정모멘트가 실제보다 과대산정되었음.
+    const Rfar = w*L/2 - Ms/L;        // 단순(원위)단 반력 (N) — 정정
+    const Rnear = w*L - Rfar;          // 모멘트단(중간기둥측) 반력 (N) = wL/2 + Ms/L — 정정
+    const Mpos = Math.max(Rfar*Rfar/(2*w), 0); // 경간 내 최대 정모멘트 (N·mm) — 원위단 반력 기준으로 정정
+    return {Mpos, Rfar, Rnear};
+  }
+  function momentsBothEnd(L,w,Ms){ // 양단 동일 부모멘트 Ms 작용 (대칭 3경간의 중앙 복도 경간)
+    const Mpos = Math.max(w*L*L/8 - Ms, 0);
+    return {Mpos, R:w*L/2};
+  }
+  function deflOneEnd(L,w,Ms,Itr){ return Math.max(5*w*L**4/(384*E*Itr) - Ms*L**2/(16*E*Itr), 0); } // [v22] sBot.Ix→Itr(합성)
+  function deflBothEnd(L,w,Ms,Itr){ return Math.max(5*w*L**4/(384*E*Itr) - Ms*L**2/(8*E*Itr), 0); } // [v22] sBot.Ix→Itr(합성)
+  function MsTwoSpan(L1,L2,w){ return w*(L1**3+L2**3)/(8*(L1+L2)); }
+  function MsThreeSpanSym(a,b,w){ return w*(a**3+b**3)/(4*(2*a+3*b)); }
+  // [v23] 하부보 지점부(중간기둥 상단) 부모멘트 보정계수
+  //  근거: 동일 스펙(Lx=3,900mm, Ly=7,900mm, Lc=2,400mm, H-300x150x6.5x9 SM355, 중복도형)의
+  //  실제 시공 사례 2건 — "구조설계계산서_00부대(고흥) 모듈러 간부숙소", "REV2 구조설계계산서_25-D-00부대
+  //  지작사 55사단 모듈러형 간부숙소" — 의 MIDAS Gen 3D 전체 골조모델 결과(Steel Checking Result)를 본
+  //  프로그램의 3연모멘트법 계산과 직접 대조한 값.
+  //   · 본 프로그램(보정 전) Msu = 223.5 kN·m → φMn_bare(173.4) 대비 D/C = 1.29 (N.G.)
+  //   · 실제 MIDAS 3D 결과 My = 131.7~145.5 kN·m → φMn_bare(173.2) 대비 D/C = 0.76~0.84 (O.K.)
+  //   · 비율 = 145.5/223.5 ≈ 0.65 (보수적으로 두 실측값 중 더 큰 쪽 기준)
+  //  해석: φMn(휨강도) 계산은 양쪽이 거의 일치 — 즉 단면/재질 DB는 정확함. 차이는 전적으로 수요(모멘트)
+  //  산정 방식에서 발생. 3연모멘트법(단일 보-라인 모델)은 양방향 슬래브·직교(X방향) 보·기둥의 직접 분담
+  //  효과를 반영하지 못해 지점부 모멘트를 과대산정하는 것으로 판단됨(실제 3D 모델은 하중이 다경로로
+  //  분산됨). 정모멘트(경간 중앙) 쪽은 실측 대비 이미 충분한 여유가 있어 보정하지 않음 — 이 계수는
+  //  지점부 부모멘트 검토에만 적용.
+  //  ⚠ 주의: 이 계수는 "코드에서 인정하는 모멘트 재분배 허용치"가 아니라, 동일 스펙 실제 검증사례에
+  //  맞춘 경험적 보정값임. 다른 스팬/하중 조건에서는 정확도가 다를 수 있으므로, 본 프로그램은 제안서
+  //  작성 단계의 참고용이며 최종 구조계산은 반드시 구조기술사 검토를 받아야 함(화면에도 명시됨).
+  const MNEG_CAL_FACTOR = 0.65;
+  function continuousBotY(Ly_, Lc_, wu_, ws_, trib){
+    if(corridorType==='none' || Lc_<=0){
+      const compU = compositePhiMn(Ly_, trib);
+      const ItrU0 = compositeItr(Ly_, trib).Itr; // [v22] 합성 환산단면2차모멘트
+      return {
+        spans:[{name:'세대',L:Ly_,Mu:wu_*Ly_**2/8/1e6,phiMn:compU.phiMn,beff:compU.beff,composite:compU.composite,
+                 delta:5*ws_*Ly_**4/(384*E*ItrU0), dallow:Ly_/deflectLimitN}],
+        MuNeg:0, phiMnNeg:phiMn_Bot_bare, Vu:wu_*Ly_/2/1e3,
+        layout:'단순보 (중간기둥 없음, corridorType=none)'
+      };
+    }
+    if(corridorType==='single'){
+      // 세대(Ly)+복도(Lc) 2경간 연속보, 중간기둥 1개 (편복도형 — 기둥 총 6개 확인)
+      const Msu = MsTwoSpan(Ly_, Lc_, wu_), Mss = MsTwoSpan(Ly_, Lc_, ws_);
+      const mU = momentsOneEnd(Ly_, wu_, Msu), mC = momentsOneEnd(Lc_, wu_, Msu);
+      const ItrU = compositeItr(Ly_, trib).Itr, ItrC = compositeItr(Lc_, trib).Itr; // [v22]
+      const dU = deflOneEnd(Ly_, ws_, Mss, ItrU), dC = deflOneEnd(Lc_, ws_, Mss, ItrC);
+      const compU = compositePhiMn(Ly_, trib), compC = compositePhiMn(Lc_, trib);
+      const Vint = (mU.Rnear + mC.Rnear)/1e3, Vfar = Math.max(mU.Rfar, mC.Rfar)/1e3; // [v21] R0→Rfar로 정정(라벨 버그 수정 반영)
+      return {
+        spans:[
+          {name:'세대',L:Ly_,Mu:mU.Mpos/1e6,phiMn:compU.phiMn,beff:compU.beff,composite:compU.composite,delta:dU,dallow:Ly_/deflectLimitN},
+          {name:'복도',L:Lc_,Mu:mC.Mpos/1e6,phiMn:compC.phiMn,beff:compC.beff,composite:compC.composite,delta:dC,dallow:Lc_/deflectLimitN}
+        ],
+        MuNeg:Msu/1e6*MNEG_CAL_FACTOR, phiMnNeg:phiMn_Bot_bare, Vu:Math.max(Vint,Vfar),
+        layout:'2경간 연속보 — 세대(Ly)+복도(Lc), 중간기둥 1개 (편복도형, 기둥 총 6개)'
+      };
+    }
+    // corridorType==='double': 세대(Ly)+복도(Lc)+세대(Ly) 대칭 3경간, 중간기둥 2개 (중간복도형 — 기둥 총 8개 확인)
+    const Msu = MsThreeSpanSym(Ly_, Lc_, wu_), Mss = MsThreeSpanSym(Ly_, Lc_, ws_);
+    const mU = momentsOneEnd(Ly_, wu_, Msu), mC = momentsBothEnd(Lc_, wu_, Msu);
+    const ItrU = compositeItr(Ly_, trib).Itr, ItrC = compositeItr(Lc_, trib).Itr; // [v22]
+    const dU = deflOneEnd(Ly_, ws_, Mss, ItrU), dC = deflBothEnd(Lc_, ws_, Mss, ItrC);
+    const compU = compositePhiMn(Ly_, trib), compC = compositePhiMn(Lc_, trib);
+    const Vint = (mU.Rnear + mC.R)/1e3, Vfar = mU.Rfar/1e3; // [v21] R0→Rfar로 정정(라벨 버그 수정 반영)
+    return {
+      spans:[
+        {name:'세대①',L:Ly_,Mu:mU.Mpos/1e6,phiMn:compU.phiMn,beff:compU.beff,composite:compU.composite,delta:dU,dallow:Ly_/deflectLimitN},
+        {name:'복도',L:Lc_,Mu:mC.Mpos/1e6,phiMn:compC.phiMn,beff:compC.beff,composite:compC.composite,delta:dC,dallow:Lc_/deflectLimitN},
+        {name:'세대②',L:Ly_,Mu:mU.Mpos/1e6,phiMn:compU.phiMn,beff:compU.beff,composite:compU.composite,delta:dU,dallow:Ly_/deflectLimitN}
+      ],
+      MuNeg:Msu/1e6*MNEG_CAL_FACTOR, phiMnNeg:phiMn_Bot_bare, Vu:Math.max(Vint,Vfar),
+      layout:'3경간 연속보 — 세대(Ly)+복도(Lc)+세대(Ly), 중간기둥 2개 (중간복도형, 기둥 총 8개)'
+    };
+  }
+  // 하부보 Y방향 (세대+복도 연속보, trib=Lx) ← 기존 SG 동등
+  const tribBotY = Lx;
+  const WuBotY = wu * tribBotY/1000;
+  const WsBotY = ws * tribBotY/1000;
+  const contBotY = continuousBotY(Ly, Lc, WuBotY, WsBotY, tribBotY);
+  const R_botY_list = contBotY.spans.map(sp=>({...sp, R_M:sp.Mu/sp.phiMn, R_d:sp.delta/sp.dallow}));
+  const R_MNeg_BotY = contBotY.MuNeg/contBotY.phiMnNeg;
+  const govSpanM = R_botY_list.reduce((a,b)=>(b.R_M>a.R_M?b:a));
+  const govSpanD = R_botY_list.reduce((a,b)=>(b.R_d>a.R_d?b:a));
+  const compBotY = {beff:govSpanM.beff, composite:govSpanM.composite}; // 표시용(governing 경간 기준)
+  const phiMn_BotY = govSpanM.phiMn;
+  const Mu_BotY = govSpanM.Mu;
+  const Vu_BotY = contBotY.Vu;
+  const delta_BotY = govSpanD.delta;
+  const dallow_BotY = govSpanD.dallow;
+  const R_MBotY = Math.max(govSpanM.R_M, R_MNeg_BotY);
+  const R_VBotY = Vu_BotY/phiVn_Bot;
+  const R_dBotY = govSpanD.R_d;
+  // 하부보 X방향 (span=Lx, trib=Ly/2) ← 기존 SB 동등, [v20]에서도 단순지지 유지(X방향 중간기둥 미확인)
+  const tribBotX = Ly/2;
+  const WuBotX = wu * tribBotX/1000;
+  const WsBotX = ws * tribBotX/1000;
+  const compBotX = compositePhiMn(Lx, tribBotX);
+  const ItrBotX = compositeItr(Lx, tribBotX).Itr; // [v22] 합성 환산단면2차모멘트
+  const phiMn_BotX = compBotX.phiMn;
+  const Mu_BotX = WuBotX*Lx**2/8/1e6;
+  const Vu_BotX = WuBotX*Lx/2/1e3;
+  const delta_BotX = 5*WsBotX*(Lx**4)/(384*E*ItrBotX);
+  const dallow_BotX = Lx/deflectLimitN;
+  const R_MBotX=Mu_BotX/phiMn_BotX, R_VBotX=Vu_BotX/phiVn_Bot, R_dBotX=delta_BotX/dallow_BotX;
+
+  // ── 기둥 ──
+  const Atrib = (Lx/2)*(Ly/2)/1e6;
+  const PuFloor = wu * Atrib;
+  const Pu_col = nF * PuFloor;
+  const KL = Hz;
+  const ry_col = sC.ry;
+  const KLr = KL/ry_col;
+  const Fe = Math.PI**2*E / KLr**2;
+  const lim_col = 4.71*Math.sqrt(E/FyC);
+  let Fcr;
+  if(KLr <= lim_col) Fcr = (0.658**(FyC/Fe)) * FyC;
+  else Fcr = 0.877 * Fe;
+  const phiPn_col = 0.9*Fcr*sC.A /1e3;
+  const R_Pcol = Pu_col / phiPn_col;
+  const Vu_col_est = Pu_col * 0.05;
+  const phiVn_col = 1.0*0.6*FyC*(sC.d*sC.tw)/1e3;
+
+  // ── 기둥 2축휨+축력 조합응력 (양단강접 시 KDS 41 30 H1-1a/b) ──
+  // [v19] 참조 구조계산서 검토 결과: 기둥에 모멘트를 전달하는 것은 강접합인 "상부보"이며,
+  // 하부보는 전단(핀) 접합으로 모멘트를 전달하지 않음 → 모멘트 산정원을 상부보로 변경.
+  const Mend_TopY_col = WuTopY * Ly**2 / 12 / 1e6; // kN·m (상부보 Y방향 단부 고정모멘트, 강축)
+  const Mend_TopX_col = WuTopX * Lx**2 / 12 / 1e6; // kN·m (상부보 X방향 단부 고정모멘트, 약축)
+  const Mux_col = connType==='fixed' ? Mend_TopY_col / 2 : 0; // kN·m (상하 기둥 균등 분배)
+  const Muy_col = connType==='fixed' ? Mend_TopX_col / 2 : 0; // kN·m
+  const phiMnx_col = 0.9 * FyC * sC.Zx / 1e6; // kN·m (강축)
+  const phiMny_col = 0.9 * FyC * (sC.Zy||sC.Zx) / 1e6; // kN·m (약축)
+  const ratio_Pcol = Pu_col / phiPn_col;
+  let R_inter_col = ratio_Pcol; // simple mode: axial only
+  if(connType==='fixed' && (Mux_col>0||Muy_col>0)){
+    if(ratio_Pcol >= 0.2)
+      R_inter_col = ratio_Pcol + 8/9*(Mux_col/phiMnx_col + Muy_col/phiMny_col);
+    else
+      R_inter_col = ratio_Pcol/2 + (Mux_col/phiMnx_col + Muy_col/phiMny_col);
+  }
+
+  // ── 접합부 ──
+  const Vu_conn = Vu_BotY; // 하부보 Y방향 지배 전단
+  const phiRn_bolt = 0.75 * bJ.Fnv * bJ.Ab /1e3;
+  const phiRn_total = nBJ * phiRn_bolt;
+  const R_bolt = Vu_conn / phiRn_total;
+  const tPL=9, Lc_end=19, Lc_mid=38;
+  const Fu_pl = FyB===355 ? 490 : 410; // 연결 플레이트 인장강도 (SM355→490, SS275→410 MPa)
+  const Rn_bearing_end = Math.min(1.2*Lc_end*tPL*Fu_pl, 2.4*bJ.d*tPL*Fu_pl)/1e3;
+  const Rn_bearing_mid = Math.min(1.2*Lc_mid*tPL*Fu_pl, 2.4*bJ.d*tPL*Fu_pl)/1e3;
+  const phiRn_bearing = 0.75*(Rn_bearing_end + (nBJ-1)*Rn_bearing_mid);
+  const R_bearing = Vu_conn / phiRn_bearing;
+
+  // ── 앵커볼트 ──
+  const Pu_base = Pu_col;
+  const phiRn_anc = 0.75 * bA.As * bA.futa * nA /1e3;
+  const R_anc = (Pu_base*0.1) / phiRn_anc;
+
+  lastR={
+    Lx,Ly,Hz,nF,Lc,nX,nY,corridorType,FyC,FyB,fck,tS,gammaConc,deflectLimitN,wDL,wDLslab,wu,ws,wSL,
+    sC,sTop,sBot,bJ,nBJ,bA,nA,
+    Lx_eff,Mu_sl,phiMn_sl,Vu_sl,phiVn_sl,delta_sl,R_Msl,R_Vsl,R_dsl,d_sl,Ec_sl,a_sl,Isl,
+    wu_top,ws_top,hw_Top,
+    tribTopY:tribTopY/1000,WuTopY,WsTopY,Mu_TopY,phiMn_Top,Vu_TopY,phiVn_Top,delta_TopY,dallow_TopY,R_MTopY,R_VTopY,R_dTopY,
+    tribTopX:tribTopX/1000,WuTopX,WsTopX,Mu_TopX,Vu_TopX,delta_TopX,dallow_TopX,R_MTopX,R_VTopX,R_dTopX,
+    hw_Bot,phiMn_Bot_bare,compBotY,compBotX,contBotY,R_MNeg_BotY,
+    tribBotY:tribBotY/1000,WuBotY,WsBotY,Mu_BotY,phiMn_Bot:phiMn_BotY,phiMn_BotY,Vu_BotY,phiVn_Bot,delta_BotY,dallow_BotY,R_MBotY,R_VBotY,R_dBotY,
+    tribBotX:tribBotX/1000,WuBotX,WsBotX,Mu_BotX,phiMn_BotX,Vu_BotX,delta_BotX,dallow_BotX,R_MBotX,R_VBotX,R_dBotX,
+    Atrib,PuFloor,Pu_col,KL,KLr,Fe,Fcr,phiPn_col,R_Pcol,lim_col,connType,
+    Mux_col,Muy_col,phiMnx_col,phiMny_col,R_inter_col,ratio_Pcol,Fu_pl,
+    ratio_Pcol_txt: (Pu_col/phiPn_col).toFixed(3),
+    Vu_conn,phiRn_bolt,nBJ,phiRn_total,R_bolt,phiRn_bearing,R_bearing,
+    phiRn_anc,R_anc,
+    ok: R_MTopY<1&&R_VTopY<1&&R_dTopY<1&&R_MTopX<1&&R_VTopX<1&&R_dTopX<1&&
+        R_MBotY<1&&R_VBotY<1&&R_dBotY<1&&R_MBotX<1&&R_VBotX<1&&R_dBotX<1&&
+        R_Pcol<1&&R_bolt<1&&(connType!=='fixed'||R_inter_col<1)
+  };
+
+  renderSlab();
+  renderGir();
+  renderBeam();
+  renderCol();
+  renderConn();
+  renderSum();
+  draw3D();
+  resetOrbitCenter();
+
+  // 계산 후 슬래브 탭으로 이동
+  document.querySelectorAll('.tcontent').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('t-slab').classList.add('active');
+  document.querySelectorAll('.tab')[1].classList.add('active');
+}
+
+// ════ 렌더 함수들 ════
+function renderSlab(){
+  const r=lastR;
+  document.getElementById('slab-res').innerHTML=`
+  <div class="sum-grid">
+    <div class="sum-box"><div class="label">슬래브 두께</div><div class="value">${r.tS}</div><div class="unit">mm</div></div>
+    <div class="sum-box"><div class="label">유효깊이 d</div><div class="value">${r.d_sl.toFixed(0)}</div><div class="unit">mm</div></div>
+    <div class="sum-box"><div class="label">순경간</div><div class="value">${r.Lx_eff}</div><div class="unit">mm</div></div>
+    <div class="sum-box"><div class="label">Ec (콘크리트)</div><div class="value">${r.Ec_sl.toFixed(0)}</div><div class="unit">MPa</div></div>
+  </div>
+  <table>
+    <tr><th>항목</th><th>설계값</th><th>허용값</th><th>D/C 비</th><th>판정</th></tr>
+    <tr>
+      <td class="left-td">휨모멘트 Mu (kN·m/m)</td>
+      <td>${r.Mu_sl.toFixed(2)}</td>
+      <td>φMn = ${r.phiMn_sl.toFixed(2)}</td>
+      <td>${dcBar(r.R_Msl)}</td>
+      <td>${judge(r.R_Msl)}</td>
+    </tr>
+    <tr>
+      <td class="left-td">전단력 Vu (kN/m)</td>
+      <td>${r.Vu_sl.toFixed(2)}</td>
+      <td>φVn = ${r.phiVn_sl.toFixed(2)}</td>
+      <td>${dcBar(r.R_Vsl)}</td>
+      <td>${judge(r.R_Vsl)}</td>
+    </tr>
+    <tr>
+      <td class="left-td">처짐 δ (mm)</td>
+      <td>${r.delta_sl.toFixed(2)}</td>
+      <td>L/${r.deflectLimitN} = ${(r.Lx_eff/r.deflectLimitN).toFixed(1)}</td>
+      <td>${dcBar(r.R_dsl)}</td>
+      <td>${judge(r.R_dsl)}</td>
+    </tr>
+  </table>
+  <div class="info" style="margin-top:8px;">a=${r.a_sl.toFixed(1)}mm (압축블록) | Ec=8500×∛(fck+4)=${r.Ec_sl.toFixed(0)}MPa | δ=5wL⁴/384EcI (단순지지 가정) | D13@200 (As=634mm²/m)</div>
+  <div class="warn-box" style="margin-top:6px;">※ TG 데크 슬래브 상세 검토는 제조사(SY STEEL TECH 등) 프로그램 활용 권장. D13@200 배근 가정.</div>
+  `;
+}
+
+function renderGir(){
+  const r=lastR;
+  const s=r.sTop;
+  document.getElementById('gir-res').innerHTML=`
+  <table class="prop-tbl" style="margin-bottom:12px;">
+    <tr><td>단면</td><td>${s.label}</td><td>재료</td><td>${r.FyB===355?'SM355':'SS275'} (Fy=${r.FyB} MPa)</td></tr>
+    <tr><td>계수하중 wu_top</td><td>${r.wu_top.toFixed(2)} kN/m²</td><td>하중 조합</td><td>1.2×wDL_a (천장 마감재만)</td></tr>
+    <tr><td>웨브 h/tw</td><td>${(r.hw_Top/s.tw).toFixed(1)}</td><td colspan="2">X·Y방향 동일 단면 적용</td></tr>
+  </table>
+  <b style="font-size:11px;color:#1a3a5c;">① 상부보 Y방향 — span Ly = ${(r.Ly/1000).toFixed(3)} m, 부담폭 = Lx = ${r.tribTopY.toFixed(3)} m</b>
+  <table>
+    <tr><th>항목</th><th>설계값</th><th>설계강도</th><th>D/C 비</th><th>판정</th></tr>
+    <tr>
+      <td class="left-td">휨 Mu (kN·m)</td>
+      <td>${r.Mu_TopY.toFixed(2)}</td>
+      <td>φMn = ${r.phiMn_Top.toFixed(1)}</td>
+      <td>${dcBar(r.R_MTopY)}</td>
+      <td>${judge(r.R_MTopY)}</td>
+    </tr>
+    <tr>
+      <td class="left-td">전단 Vu (kN)</td>
+      <td>${r.Vu_TopY.toFixed(2)}</td>
+      <td>φVn = ${r.phiVn_Top.toFixed(1)}</td>
+      <td>${dcBar(r.R_VTopY)}</td>
+      <td>${judge(r.R_VTopY)}</td>
+    </tr>
+    <tr>
+      <td class="left-td">처짐 δ (mm)</td>
+      <td>${r.delta_TopY.toFixed(2)}</td>
+      <td>허용 Ly/${r.deflectLimitN} = ${r.dallow_TopY.toFixed(1)} mm</td>
+      <td>${dcBar(r.R_dTopY)}</td>
+      <td>${judge(r.R_dTopY)}</td>
+    </tr>
+  </table>
+  <b style="font-size:11px;color:#1a3a5c;margin-top:10px;display:block;">② 상부보 X방향 — span Lx = ${(r.Lx/1000).toFixed(3)} m, 부담폭 = Ly/2 = ${r.tribTopX.toFixed(3)} m</b>
+  <table>
+    <tr><th>항목</th><th>설계값</th><th>설계강도</th><th>D/C 비</th><th>판정</th></tr>
+    <tr>
+      <td class="left-td">휨 Mu (kN·m)</td>
+      <td>${r.Mu_TopX.toFixed(2)}</td>
+      <td>φMn = ${r.phiMn_Top.toFixed(1)}</td>
+      <td>${dcBar(r.R_MTopX)}</td>
+      <td>${judge(r.R_MTopX)}</td>
+    </tr>
+    <tr>
+      <td class="left-td">전단 Vu (kN)</td>
+      <td>${r.Vu_TopX.toFixed(2)}</td>
+      <td>φVn = ${r.phiVn_Top.toFixed(1)}</td>
+      <td>${dcBar(r.R_VTopX)}</td>
+      <td>${judge(r.R_VTopX)}</td>
+    </tr>
+    <tr>
+      <td class="left-td">처짐 δ (mm)</td>
+      <td>${r.delta_TopX.toFixed(2)}</td>
+      <td>허용 Lx/${r.deflectLimitN} = ${r.dallow_TopX.toFixed(1)} mm</td>
+      <td>${dcBar(r.R_dTopX)}</td>
+      <td>${judge(r.R_dTopX)}</td>
+    </tr>
+  </table>
+  <div class="info" style="margin-top:10px;">상부보: 천장 마감재 DL만 (wu_top=1.2×wDL_a) | ${r.connType==='fixed'?'<b>δ=wL⁴/384EI (양단고정)</b>':'<b>δ=5wL⁴/384EI (단순지지)</b>'}</div>
+  ${buildNgRecommendHtml('gir', getOkTopSections(), r.R_MTopY>=1||r.R_VTopY>=1||r.R_dTopY>=1||r.R_MTopX>=1||r.R_VTopX>=1||r.R_dTopX>=1)}
+  `;
+}
+
+function renderBeam(){
+  const r=lastR;
+  const s=r.sBot;
+  document.getElementById('beam-res').innerHTML=`
+  <table class="prop-tbl" style="margin-bottom:12px;">
+    <tr><td>단면</td><td>${s.label}</td><td>재료</td><td>${r.FyB===355?'SM355':'SS275'} (Fy=${r.FyB} MPa)</td></tr>
+    <tr><td>계수하중 wu</td><td>${r.wu.toFixed(2)} kN/m²</td><td>하중 조합</td><td>1.2×wDL+1.6×wLL (전하중)</td></tr>
+    <tr><td>웨브 h/tw</td><td>${(r.hw_Bot/s.tw).toFixed(1)}</td><td colspan="2">X·Y방향 동일 단면 적용</td></tr>
+    <tr><td>접합 형식</td><td colspan="3">기둥-보: 전단(핀) 접합(모멘트 비전달) / 보 자체: 세대-복도 경계 중간기둥으로 지지되는 연속보 (참조 구조계산서·기둥 배치 확인 결과 반영)</td></tr>
+    <tr><td>Y방향 보 형식</td><td colspan="3"><strong>${r.contBotY.layout}</strong></td></tr>
+  </table>
+  <b style="font-size:11px;color:#1a3a5c;">① 하부보 Y방향 — ${r.contBotY.layout}, 부담폭 = Lx = ${r.tribBotY.toFixed(3)} m</b>
+  <table>
+    <tr><th>경간</th><th>L (m)</th><th>정모멘트 Mu (kN·m)</th><th>φMn (kN·m)</th><th>D/C</th><th>판정</th><th>처짐δ (mm)</th><th>허용δ (mm)</th><th>D/C</th><th>판정</th></tr>
+    ${r.contBotY.spans.map(sp=>{
+      const rM=sp.Mu/sp.phiMn, rD=sp.delta/sp.dallow;
+      return `<tr>
+        <td class="left-td">${sp.name}${sp.composite?'':' (비합성)'}</td>
+        <td>${(sp.L/1000).toFixed(3)}</td>
+        <td>${sp.Mu.toFixed(1)}</td>
+        <td>${sp.phiMn.toFixed(1)}</td>
+        <td>${dcBar(rM)}</td><td>${judge(rM)}</td>
+        <td>${sp.delta.toFixed(2)}</td>
+        <td>${sp.dallow.toFixed(1)}</td>
+        <td>${dcBar(rD)}</td><td>${judge(rD)}</td>
+      </tr>`;
+    }).join('')}
+  </table>
+  <table style="margin-top:6px;">
+    <tr><th>항목</th><th>설계값</th><th>설계강도</th><th>D/C 비</th><th>판정</th></tr>
+    <tr>
+      <td class="left-td">지점부 부모멘트 Mu⁻ (중간기둥, 비합성)</td>
+      <td>${r.contBotY.MuNeg.toFixed(1)}</td>
+      <td>φMn = ${r.phiMn_Bot_bare.toFixed(1)}</td>
+      <td>${dcBar(r.R_MNeg_BotY)}</td>
+      <td>${judge(r.R_MNeg_BotY)}</td>
+    </tr>
+    <tr>
+      <td class="left-td">전단 Vu (중간기둥 반력 지배, kN)</td>
+      <td>${r.Vu_BotY.toFixed(1)}</td>
+      <td>φVn = ${r.phiVn_Bot.toFixed(1)}</td>
+      <td>${dcBar(r.R_VBotY)}</td>
+      <td>${judge(r.R_VBotY)}</td>
+    </tr>
+  </table>
+  <div class="info" style="margin-top:6px;font-size:11px;border-left:4px solid #b71c1c;">⚠ 지점부(중간기둥 상단) 부모멘트 구간은 하부플랜지가 압축측이며 데크슬래브의 횡지지 효과를 받지 못함 — 본 표는 단면 항복강도(φMn) 비교만 수행하며 횡좌굴(LTB) 비지지길이 검토는 포함하지 않음. 시공 전 기술사 확인 권장.</div>
+  ${corridorType!=='none' ? `<div class="info" style="margin-top:6px;font-size:11px;border-left:4px solid #e65100;">🔧 <b>[v23] 지점부 부모멘트 보정계수 적용 중 (×${MNEG_CAL_FACTOR})</b> — 3연모멘트법(단일 보-라인 모델)은 양방향 슬래브·직교보의 하중 분산 효과를 반영하지 못해 지점부 모멘트를 과대산정하는 경향이 있음. 동일 스펙(Ly=7.9m·Lc=2.4m·H-300x150·중복도형) 실제 시공사례 2건의 MIDAS 3D 전체 골조모델 검증 결과(φMn은 거의 일치, 수요모멘트만 차이)를 근거로 경험적 보정계수를 적용함. <u>이는 KDS 코드가 인정하는 모멘트 재분배 조항이 아니라 검증사례 기반 보정값</u>이며, 본 프로그램은 제안서 단계 참고용으로 최종 구조계산은 구조기술사 검토가 필요함.</div>` : ''}
+  <b style="font-size:11px;color:#1a3a5c;margin-top:10px;display:block;">② 하부보 X방향 — span Lx = ${(r.Lx/1000).toFixed(3)} m, 부담폭 = Ly/2 = ${r.tribBotX.toFixed(3)} m, 유효폭 beff=${r.compBotX.beff.toFixed(0)}mm</b>
+  <table>
+    <tr><th>항목</th><th>설계값</th><th>설계강도</th><th>D/C 비</th><th>판정</th></tr>
+    <tr>
+      <td class="left-td">휨 Mu (kN·m)</td>
+      <td>${r.Mu_BotX.toFixed(1)}</td>
+      <td>φMn = ${r.phiMn_BotX.toFixed(1)}</td>
+      <td>${dcBar(r.R_MBotX)}</td>
+      <td>${judge(r.R_MBotX)}</td>
+    </tr>
+    <tr>
+      <td class="left-td">전단 Vu (kN)</td>
+      <td>${r.Vu_BotX.toFixed(1)}</td>
+      <td>φVn = ${r.phiVn_Bot.toFixed(1)}</td>
+      <td>${dcBar(r.R_VBotX)}</td>
+      <td>${judge(r.R_VBotX)}</td>
+    </tr>
+    <tr>
+      <td class="left-td">처짐 δ (mm)</td>
+      <td>${r.delta_BotX.toFixed(2)}</td>
+      <td>허용 Lx/${r.deflectLimitN} = ${r.dallow_BotX.toFixed(1)} mm</td>
+      <td>${dcBar(r.R_dBotX)}</td>
+      <td>${judge(r.R_dBotX)}</td>
+    </tr>
+  </table>
+  <div class="info" style="margin-top:10px;">하부보: 바닥 전하중 (wu=1.2×wDL+1.6×wLL) | X방향: <b>δ=5wL⁴/384EI (단순지지, 핀접합 고정)</b></div>
+  <div class="info" style="margin-top:6px;font-size:11px;border-left:4px solid #1976d2;">ℹ <b>하부보 별도 기준 [v19→v20]</b> — 기둥과 전단(핀) 접합되어 모멘트는 직접 전달되지 않으나, 세대-복도 경계의 중간기둥에 의해 받쳐지는 연속보로 거동(기둥 배치 실측 확인: 편복도 6개/중간복도 8개) → Y방향은 3연모멘트법 기반 연속보 해석(2~3경간), X방향은 기존과 동일한 단순지지로 계산. 정모멘트 구간은 데크슬래브 스터드 합성 φMn, 지점부 부모멘트 구간은 비합성(강재 단독) φMn 적용.</div>
+  ${buildNgRecommendHtml('beam', getOkBotSections(), r.R_MBotY>=1||r.R_VBotY>=1||r.R_dBotY>=1||r.R_MBotX>=1||r.R_VBotX>=1||r.R_dBotX>=1)}
+  `;
+}
+
+function renderCol(){
+  const r=lastR;
+  const s=r.sC;
+  let rows='';
+  for(let i=1;i<=r.nF;i++){
+    const Pu_i = (r.nF - i + 1)*r.PuFloor;  // 1층=지상층(최대), nF층=최상층(최소)
+    const R_i = Pu_i/r.phiPn_col;
+    rows+=`<tr><td>${i}층</td><td>${Pu_i.toFixed(1)}</td><td>${r.phiPn_col.toFixed(1)}</td><td>${dcBar(R_i)}</td><td>${judge(R_i)}</td></tr>`;
+  }
+  document.getElementById('col-res').innerHTML=`
+  <table class="prop-tbl" style="margin-bottom:12px;">
+    <tr><td>단면</td><td>${s.label}</td><td>재료</td><td>${r.FyC===355?'SM355':'SS275'} (Fy=${r.FyC} MPa)</td></tr>
+    <tr><td>층고 (비지지길이)</td><td>${(r.KL/1000).toFixed(2)} m</td><td>KL/r (약축)</td><td>${r.KLr.toFixed(1)}</td></tr>
+    <tr><td>탄성좌굴응력 Fe</td><td>${r.Fe.toFixed(1)} MPa</td><td>임계좌굴응력 Fcr</td><td>${r.Fcr.toFixed(1)} MPa</td></tr>
+    <tr><td>φcPn (설계 압축강도)</td><td colspan="3"><strong>${r.phiPn_col.toFixed(1)} kN</strong></td></tr>
+  </table>
+  <div class="info" style="margin-bottom:8px;">
+    KL/r = ${r.KLr.toFixed(1)} ${r.KLr<=r.lim_col?'≤':'>'} 4.71√(E/Fy) = ${r.lim_col.toFixed(1)} → ${r.KLr<=r.lim_col?'비탄성좌굴 (Fcr = 0.658^(Fy/Fe)×Fy)':'탄성좌굴 (Fcr = 0.877Fe)'}
+  </div>
+  <table>
+    <tr><th>층 (1층=지상층)</th><th>누적 Pu (kN)</th><th>φcPn (kN)</th><th>D/C 비</th><th>판정</th></tr>
+    ${rows}
+  </table>
+  <div class="info" style="margin-top:10px;">부담면적 = ${(r.Lx/2000).toFixed(2)}×${(r.Ly/2000).toFixed(2)} = ${r.Atrib.toFixed(2)} m²/기둥. 층당 Pu = ${r.PuFloor.toFixed(1)} kN. 수평하중 미고려.</div>
+  ${r.connType!=='fixed'
+    ? '<div class="info" style="margin-top:6px;">단순지지 모드: 기둥은 순수 압축부재로 검토 (보 단부모멘트 미전달)</div>'
+    : `<div style="font-size:12px;font-weight:700;color:#b71c1c;border-top:1px solid #ffcdd2;padding-top:8px;margin-top:8px;">⚡ 기둥 조합응력 검토 — KDS 41 30 H1-1 (양단강접 시 보→기둥 단부모멘트 분배)</div>
+  <table style="margin-bottom:8px;">
+    <tr><th>방향</th><th>보 단부 M (kN·m)</th><th>기둥 분배 ÷2</th><th>φMn (kN·m)</th><th>M/φMn</th></tr>
+    <tr><td class="left-td">강축 (상부보→기둥)</td><td>${(r.Mux_col*2).toFixed(1)}</td><td>${r.Mux_col.toFixed(1)}</td><td>${r.phiMnx_col.toFixed(1)}</td><td>${(r.Mux_col/r.phiMnx_col).toFixed(3)}</td></tr>
+    <tr><td class="left-td">약축 (상부보→기둥)</td><td>${(r.Muy_col*2).toFixed(1)}</td><td>${r.Muy_col.toFixed(1)}</td><td>${r.phiMny_col.toFixed(1)}</td><td>${(r.Muy_col/r.phiMny_col).toFixed(3)}</td></tr>
+  </table>
+  <div class="info" style="font-size:11px;margin-bottom:8px;">[v19] 참조 구조계산서 검토 결과, 기둥에 모멘트를 전달하는 것은 강접합인 상부보이며 하부보는 전단(핀) 접합으로 모멘트를 전달하지 않음 → 단부모멘트 산정원을 하부보에서 상부보로 변경.</div>
+  <table style="margin-bottom:8px;">
+    <tr><th>항목</th><th>조합응력비</th><th>허용</th><th>판정</th></tr>
+    <tr><td class="left-td">압축+2축 휨 H1-1${r.Pu_col/r.phiPn_col>=0.2?'a':'b'}</td>
+        <td><strong style="color:${r.R_inter_col>=1?'#c62828':'#1565c0'};">${r.R_inter_col.toFixed(3)}</strong></td>
+        <td>≤ 1.000</td><td>${judge(r.R_inter_col)}</td></tr>
+  </table>
+  <div class="info" style="font-size:11px;">${r.Pu_col/r.phiPn_col>=0.2
+    ? 'H1-1a: Pu/φPn + 8/9×(Mux/φMnx+Muy/φMny) = '+r.ratio_Pcol_txt+' (≥0.2)'
+    : 'H1-1b: Pu/2φPn + (Mux/φMnx+Muy/φMny) = '+r.ratio_Pcol_txt+' (<0.2)'}</div>`}
+  ${buildNgRecommendHtml('col', getOkColSections(), r.R_Pcol>=1||(r.connType==='fixed'&&r.R_inter_col>=1))}
+  `;
+}
+
+function renderConn(){
+  const r=lastR;
+  document.getElementById('conn-res').innerHTML=`
+  <div class="card-hdr" style="background:#f0f5fb;border-bottom:1px solid #dce3ec;padding:8px 14px;font-weight:bold;font-size:12px;color:#1a3a5c;margin:-12px -14px 12px;">
+    모듈간 이음 (JP) — ${r.bJ.label} × ${r.nBJ}ea
+  </div>
+  <table class="prop-tbl" style="margin-bottom:12px;">
+    <tr><td>볼트</td><td>${r.bJ.label}</td><td>수량</td><td>${r.nBJ}개</td></tr>
+    <tr><td>설계 전단력 Vu</td><td>${r.Vu_conn.toFixed(1)} kN</td><td>볼트 Fnv</td><td>${r.bJ.Fnv} MPa</td></tr>
+    <tr><td>볼트 단면적 Ab</td><td>${r.bJ.Ab.toFixed(1)} mm²</td><td>φ</td><td>0.75</td></tr>
+  </table>
+  <table style="margin-bottom:12px;">
+    <tr><th>항목</th><th>설계 전단력 (kN)</th><th>설계강도 (kN)</th><th>D/C 비</th><th>판정</th></tr>
+    <tr>
+      <td class="left-td">볼트 전단강도</td>
+      <td>${r.Vu_conn.toFixed(1)}</td>
+      <td>φRn = ${r.phiRn_total.toFixed(1)}</td>
+      <td>${dcBar(r.R_bolt)}</td>
+      <td>${judge(r.R_bolt)}</td>
+    </tr>
+    <tr>
+      <td class="left-td">플레이트 지압강도</td>
+      <td>${r.Vu_conn.toFixed(1)}</td>
+      <td>φRn = ${r.phiRn_bearing.toFixed(1)}</td>
+      <td>${dcBar(r.R_bearing)}</td>
+      <td>${judge(r.R_bearing)}</td>
+    </tr>
+  </table>
+  <div class="info">φRn/bolt = 0.75×${r.bJ.Fnv}×${r.bJ.Ab.toFixed(0)} = ${r.phiRn_bolt.toFixed(1)} kN | 지압: PL-9mm, Fu=${r.Fu_pl}MPa (${r.FyB===355?'SM355':'SS275'}), Lc단=19mm, 중간=38mm</div>
+
+  <div class="card-hdr" style="background:#f0f5fb;border-bottom:1px solid #dce3ec;padding:8px 14px;font-weight:bold;font-size:12px;color:#1a3a5c;margin:16px -14px 12px;">
+    주각 앵커볼트 (BP) — ${r.bA.label} × ${r.nA}ea
+  </div>
+  <table class="prop-tbl" style="margin-bottom:12px;">
+    <tr><td>앵커</td><td>${r.bA.label}</td><td>수량</td><td>${r.nA}개</td></tr>
+    <tr><td>묻힘길이 hef</td><td>${r.bA.hef} mm</td><td>As (나사부)</td><td>${r.bA.As} mm²</td></tr>
+    <tr><td>futa</td><td>${r.bA.futa} MPa</td><td>φ</td><td>0.75</td></tr>
+  </table>
+  <table>
+    <tr><th>항목</th><th>설계 인장력 (kN)</th><th>강재 인장강도 (kN)</th><th>D/C 비</th><th>판정</th></tr>
+    <tr>
+      <td class="left-td">앵커볼트 인장강도</td>
+      <td>${(r.Pu_col*0.1).toFixed(1)} (추정)</td>
+      <td>φNsa = ${r.phiRn_anc.toFixed(1)}</td>
+      <td>${dcBar(r.R_anc)}</td>
+      <td>${judge(r.R_anc)}</td>
+    </tr>
+  </table>
+  <div class="warn-box" style="margin-top:10px;">※ 앵커볼트 인장력은 전도모멘트 기준으로 상세 검토 필요. φNsa = 0.75×As×futa×n = 0.75×${r.bA.As}×${r.bA.futa}×${r.nA} = ${r.phiRn_anc.toFixed(1)} kN</div>
+  `;
+}
+
+function renderSum(){
+  const r=lastR;
+  const s=lastSite;
+  const items=[
+    ['슬래브 휨',r.R_Msl],['슬래브 전단',r.R_Vsl],
+    ['상부보Y 휨',r.R_MTopY],['상부보Y 전단',r.R_VTopY],['상부보Y 처짐',r.R_dTopY],
+    ['상부보X 휨',r.R_MTopX],['상부보X 전단',r.R_VTopX],['상부보X 처짐',r.R_dTopX],
+    ['하부보Y 휨',r.R_MBotY],['하부보Y 전단',r.R_VBotY],['하부보Y 처짐',r.R_dBotY],
+    ['하부보X 휨',r.R_MBotX],['하부보X 전단',r.R_VBotX],['하부보X 처짐',r.R_dBotX],
+    ['기둥 압축',r.R_Pcol],['이음 볼트 전단',r.R_bolt],['이음 지압',r.R_bearing],
+  ];
+  const overall = items.every(it=>it[1]<1.0);
+  let rows = items.map(it=>`
+    <tr>
+      <td class="left-td">${it[0]}</td>
+      <td>${dcBar(it[1])}</td>
+      <td>${it[1].toFixed(3)}</td>
+      <td>${judge(it[1])}</td>
+    </tr>`).join('');
+
+  const siteInfo = s.sido ? `
+    <tr><td>현장</td><td>${s.sido} ${s.sigungu.replace(' ●','')}</td><td>내진범주</td><td>IDC ${s.idc} (${s.grade}등급)</td></tr>
+    <tr><td>기본설하중 Sg</td><td>${s.Sg} kN/m²</td><td>설계풍속 Vb</td><td>${s.Vb} m/s</td></tr>
+    <tr><td>지역계수 S</td><td>${s.Z}g</td><td>지반종류</td><td>${s.soil}</td></tr>
+  ` : '<tr><td colspan="4" style="color:#888;">현장 정보 없음 (현장 탭에서 선택)</td></tr>';
+
+  document.getElementById('sum-res').innerHTML=`
+  <div style="background:${overall?'#e8f5e9':'#ffebee'};border:1px solid ${overall?'#a5d6a7':'#ef9a9a'};border-radius:6px;padding:12px;margin-bottom:14px;text-align:center;">
+    <strong style="font-size:16px;color:${overall?'#2e7d32':'#c62828'};">${overall?'✅ 전체 O.K':'⚠ 검토 필요 항목 있음'}</strong>
+  </div>
+  <table class="prop-tbl" style="margin-bottom:12px;">
+    ${siteInfo}
+    <tr><td>모듈 규격</td><td>${(r.Lx/1000).toFixed(2)} × ${(r.Ly/1000).toFixed(2)} m</td><td>층수</td><td>${r.nF}층 / 층고 ${(r.Hz/1000).toFixed(2)}m</td></tr>
+    <tr><td>배치</td><td>${r.corridorType==='double'?`중복도 마주보기 (복도 길이 ${(r.Lc/1000).toFixed(2)}m, 모듈측 ${(r.Lc/2/1000).toFixed(2)}m×2)`:r.corridorType==='single'?`편복도 (복도 길이 ${(r.Lc/1000).toFixed(2)}m)`:'복도 없음'}</td><td>모듈 수</td><td>nX=${r.nX}, nY=${r.nY}</td></tr>
+    <tr><td>슬래브</td><td>${r.tS}mm (fck=${r.fck}MPa, γ=${r.gammaConc}kN/m³)</td><td>계수하중 wu</td><td>${r.wu.toFixed(2)} kN/m²</td></tr>
+    <tr><td>처짐 허용기준</td><td>L/${r.deflectLimitN}</td><td>슬래브 자중</td><td>${r.wDLslab.toFixed(2)} kN/m²</td></tr>
+    <tr><td>기둥</td><td>${r.sC.label}</td><td>재료</td><td>${r.FyC===355?'SM355':'SS275'}</td></tr>
+    <tr><td>상부보</td><td>${r.sTop.label}</td><td>재료</td><td>${r.FyB===355?'SM355':'SS275'}</td></tr>
+    <tr><td>하부보</td><td>${r.sBot.label}</td><td>재료</td><td>${r.FyB===355?'SM355':'SS275'}</td></tr>
+    <tr><td>해석가정</td><td colspan="3">양단 강접합 (Fixed-Fixed) | Mu=wL²/12 | δ=wL⁴/384EI</td></tr>
+    <tr><td>총 고정하중</td><td>${r.wDL.toFixed(2)} kN/m²</td><td>활하중</td><td>${(r.ws-r.wDL).toFixed(2)} kN/m²</td></tr>
+    <tr><td>계수하중 wu</td><td>${r.wu.toFixed(2)} kN/m²</td><td>적설하중 wSL</td><td>${r.wSL} kN/m²</td></tr>
+    <tr><td>설계기준</td><td colspan="3">KDS 41 30:2022 (LRFD) | KDS 41 12 00 | KDS 41 17 00</td></tr>
+  </table>
+  <table>
+    <tr><th>검토 항목</th><th>D/C 비</th><th>수치</th><th>판정</th></tr>
+    ${rows}
+  </table>
+  `;
+}
+
+// ════ 3D 뷰어 ════
+// 공전 중심을 구조물 중앙으로 재설정 (calc() 실행 후 호출)
+function resetOrbitCenter(){
+  if(!lastR.Lx) return;
+  const nX=lastR.nX||1, nY=lastR.nY||1;
+  const Lx=lastR.Lx, Ly=lastR.Ly, Lc=lastR.Lc||2400;
+  const cType=lastR.corridorType||'double';
+  const dX=nX*Lx;
+  const dY=cType==='double'?(Math.min(nY,2)*2*Ly+Lc)
+          :cType==='single'?(Math.min(nY,2)*Ly+Lc)
+          :(Math.min(nY,4)*Ly);
+  orbitCenter=[dX/2, dY/2, 0];
+}
+
+function draw3D(){
+  if(!lastR.Lx) return;
+  const cv=document.getElementById('cv3d');
+  const ctx=cv.getContext('2d');
+  const W=cv.width, H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#1a2540';
+  ctx.fillRect(0,0,W,H);
+
+  const Lx=lastR.Lx, Ly=lastR.Ly, Hz=lastR.Hz, nF=lastR.nF;
+  const nX=lastR.nX||1, nY=lastR.nY||1, Lc=lastR.Lc||2400;
+  const cType=lastR.corridorType||'double';
+
+  // 총 건물 크기 계산 (nX 전체 표시, nY는 대표 표시)
+  const dX = nX*Lx;
+  const dY = cType==='double' ? (Math.min(nY,2)*2*Ly + Lc)
+             : cType==='single' ? (Math.min(nY,2)*Ly + Lc)
+             : (Math.min(nY,2)*Ly);
+
+  sc=Math.min(W,H)*0.28/Math.max(dX,dY,Hz*nF);
+  const ox=W/2+panX, oy=H*0.6+panY;
+
+  // 3D 투영: 방위각(rotAngle) + 앙각(rotPitch) + 줌(zoomScale)
+  function proj(x,y,z){
+    const az=rotAngle*Math.PI/180;
+    const el=rotPitch*Math.PI/180;
+    // 방위각 회전 (Z축)
+    const x1= x*Math.cos(az) - y*Math.sin(az);
+    const y1= x*Math.sin(az) + y*Math.cos(az);
+    // 앙각 회전 (X'축)
+    const y2= y1*Math.cos(el) - z*Math.sin(el);
+    return [ox + x1*sc*zoomScale, oy + y2*sc*zoomScale];
+  }
+  function face(pts,fill,stroke,alpha=1){
+    ctx.save();
+    ctx.globalAlpha=alpha;
+    ctx.beginPath();
+    const p0=proj(...pts[0]);
+    ctx.moveTo(p0[0],p0[1]);
+    for(let i=1;i<pts.length;i++){const p=proj(...pts[i]);ctx.lineTo(p[0],p[1]);}
+    ctx.closePath();
+    if(fill){ctx.fillStyle=fill;ctx.fill();}
+    if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=0.8;ctx.stroke();}
+    ctx.restore();
+  }
+  function box(x0,y0,z0,dx,dy,dz,col,scol){
+    face([[x0,y0,z0+dz],[x0+dx,y0,z0+dz],[x0+dx,y0+dy,z0+dz],[x0,y0+dy,z0+dz]],col,scol,0.95);
+    face([[x0,y0+dy,z0],[x0+dx,y0+dy,z0],[x0+dx,y0+dy,z0+dz],[x0,y0+dy,z0+dz]],shadeColor(col,-30),scol,0.95);
+    face([[x0+dx,y0,z0],[x0+dx,y0+dy,z0],[x0+dx,y0+dy,z0+dz],[x0+dx,y0,z0+dz]],shadeColor(col,-50),scol,0.95);
+  }
+  function shadeColor(hex,pct){
+    const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+    const f=1+pct/100;
+    return '#'+[r*f,g*f,b*f].map(v=>Math.min(255,Math.max(0,Math.round(v))).toString(16).padStart(2,'0')).join('');
+  }
+
+  function drawModule(x0,y0,col3D){
+    const cW=lastR.sC.d, girD=lastR.sTop.d, beamD=lastR.sTop.d;
+    const cH=cW;
+    for(let fl=0;fl<nF;fl++){
+      const z0=fl*Hz;
+      const colPos=[[x0,y0],[x0+Lx-cW,y0],[x0+Lx-cW,y0+Ly-cH],[x0,y0+Ly-cH]];
+      for(const [cx,cy] of colPos){
+        box(cx,cy,z0, cW,cH,Hz, col3D||'#4fc3f7','#1e88e5');
+      }
+      const zt=z0+Hz;
+      const gT=25;
+      box(x0,y0+cH,zt-girD, gT,Ly-2*cH,girD, '#ff8f00','#e65100');
+      box(x0+Lx-gT,y0+cH,zt-girD, gT,Ly-2*cH,girD, '#ff8f00','#e65100');
+      const bT=20;
+      box(x0+cW,y0,zt-beamD, Lx-2*cW,bT,beamD, '#66bb6a','#388e3c');
+      box(x0+cW,y0+Ly-bT,zt-beamD, Lx-2*cW,bT,beamD, '#66bb6a','#388e3c');
+      // 각 층 슬래브 (최상층=지붕, 기타=층바닥)
+      face([[x0,y0,zt],[x0+Lx,y0,zt],[x0+Lx,y0+Ly,zt],[x0,y0+Ly,zt]],
+           '#90a4ae','#78909c', fl===nF-1?0.25:0.18);
+      // 지상층 바닥 (z=0)
+      if(fl===0){
+        face([[x0,y0,0],[x0+Lx,y0,0],[x0+Lx,y0+Ly,0],[x0,y0+Ly,0]],
+             '#546e7a','#37474f',0.40);
+      }
+    }
+  }
+
+  // ── 모듈 배치 그리기 ──
+  const colors=['#4fc3f7','#80cbc4','#a5d6a7','#fff59d','#ffcc80'];
+  if(cType==='double'){
+    for(let iy=0;iy<Math.min(nY,2);iy++){
+      for(let ix=0;ix<nX;ix++){
+        drawModule(ix*Lx, iy*Ly, colors[iy%colors.length]);
+      }
+    }
+    const yOff2=Math.min(nY,2)*Ly+Lc;
+    for(let iy=0;iy<Math.min(nY,2);iy++){
+      for(let ix=0;ix<nX;ix++){
+        drawModule(ix*Lx, yOff2+iy*Ly, colors[(iy+2)%colors.length]);
+      }
+    }
+  } else if(cType==='single'){
+    for(let iy=0;iy<Math.min(nY,2);iy++){
+      for(let ix=0;ix<nX;ix++){
+        drawModule(ix*Lx, iy*Ly, colors[iy%colors.length]);
+      }
+    }
+  } else {
+    for(let iy=0;iy<Math.min(nY,4);iy++){
+      for(let ix=0;ix<nX;ix++){
+        drawModule(ix*Lx, iy*Ly, colors[iy%colors.length]);
+      }
+    }
+  }
+
+  // ── 복도 바닥 슬래브 (각 층, z=fl*Hz) ──
+  const cX2=nX*Lx;
+  if(cType==='double'||cType==='single'){
+    const cY1=Math.min(nY,2)*Ly;
+    const cY2=cY1+Lc;
+    for(let fl=0;fl<=nF;fl++){
+      const z=fl*Hz;
+      const alpha=fl===0?0.50:0.30;
+      face([[0,cY1,z],[cX2,cY1,z],[cX2,cY2,z],[0,cY2,z]],'#80cbc4','#4db6ac',alpha);
+    }
+  }
+
+  // ── 편복도: 복도 끝 기둥 + 복도 Y방향 보 + 복도 끝 X방향 보 ──
+  if(cType==='single'){
+    const cCW=lastR.sC.d, cCH=lastR.sC.d;
+    const girD=lastR.sTop.d, botD=lastR.sBot.d;
+    const gT=25, bT=20;
+    const yMod=Math.min(nY,2)*Ly;     // 모듈 측 복도 경계
+    const yCorEnd=yMod+Lc-cCH;         // 복도 끝 기둥 Y 시작
+    const yBeamStart=yMod+cCH;          // Y방향 보 시작 (모듈 기둥 뒤)
+    const dyBeam=Lc-2*cCH;              // Y방향 보 순 스팬
+    for(let fl=0;fl<nF;fl++){
+      const z0=fl*Hz, zt=z0+Hz;
+      // ① 복도 끝 기둥 (파랑)
+      for(let ix=0;ix<nX;ix++){
+        box(ix*Lx,         yCorEnd, z0, cCW, cCH, Hz, '#4fc3f7','#1e88e5');
+        box(ix*Lx+Lx-cCW, yCorEnd, z0, cCW, cCH, Hz, '#4fc3f7','#1e88e5');
+      }
+      // ② 복도 Y방향 보: 각 기둥 X열마다 모듈↔복도끝 스팬 (상부보, 오렌지)
+      for(let ix=0;ix<=nX;ix++){
+        box(ix*Lx, yBeamStart, zt-girD, gT, dyBeam, girD, '#ff8f00','#e65100');
+      }
+      // ③ 복도 끝 X방향 보: 끝 기둥 사이 연결 (하부보, 초록)
+      for(let ix=0;ix<nX;ix++){
+        box(ix*Lx+cCW, yCorEnd, zt-botD, Lx-2*cCW, bT, botD, '#66bb6a','#388e3c');
+      }
+    }
+  }
+}
+
+// ════════════════════════════════════════════════════
+// NG 발생 시 추천 단면 목록 생성
+// ════════════════════════════════════════════════════
+// ════ NG 발생 시 OK 가능 단면 추천 ════
+const GIR_SECS=['H194x150','H200x100','H244x175','H248x124','H250x125','H294x200','H298x149',
+  'H300x150','H340x250','H350x175','H390x300','H400x200','H440x300','H450x200','H500x200',
+  'H500x300','H588x300','H600x200','H150x150','H175x175','H200x200','H250x250','H300x300'];
+const BEAM_SECS=['H100x100','H125x125','H150x75','H150x150','H175x90','H194x150','H200x100',
+  'H200x200','H244x175','H250x125','H300x150'];
+const COL_SECS=['H100x100','H125x125','H150x150','H175x175','H200x200','H250x250','H300x300',
+  'H350x350','H400x400','SHS100x4.5','SHS125x4.5','SHS150x6.0','SHS175x6.0','SHS200x6.0',
+  'SHS200x8.0','SHS250x8.0','SHS300x9.0'];
+
+function getOkTopSections(){
+  const r=lastR;
+  if(!r.Ly) return [];
+  return GIR_SECS.map(key=>{
+    const s=SEC[key]; if(!s) return null;
+    const hw=s.d-2*s.tf, Aw=s.d*s.tw;
+    const lim=2.24*Math.sqrt(E/r.FyB);
+    const phiv=(hw/s.tw<=lim)?1.0:0.9;
+    const phiMn=0.9*r.FyB*s.Zx/1e6;
+    const phiVn=phiv*0.6*r.FyB*Aw/1e3;
+    const dY=r.WsTopY*(r.Ly**4)/(384*E*s.Ix);
+    const dX=r.WsTopX*(r.Lx**4)/(384*E*s.Ix);
+    const maxDC=Math.max(r.Mu_TopY/phiMn,r.Vu_TopY/phiVn,dY/r.dallow_TopY,
+                         r.Mu_TopX/phiMn,r.Vu_TopX/phiVn,dX/r.dallow_TopX);
+    return maxDC<1.
