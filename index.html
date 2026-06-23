@@ -208,9 +208,11 @@ td.left-td{text-align:left;}
           <button type="button" onclick="loadKakaoSDK()" style="font-size:11px;padding:5px 10px;white-space:nowrap;">지도 활성화</button>
         </div>
         <div style="display:flex;gap:6px;margin-bottom:6px;">
-          <input id="addrSearchInput" type="text" placeholder="🔍 주소/건물명 검색 (예: 소삼로 47, 강남구 테헤란로) — 끝부분만 입력해도 검색됩니다" style="flex:1;font-size:11px;padding:5px;" onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddress();}">
-          <button type="button" onclick="searchAddress()" style="font-size:11px;padding:5px 10px;white-space:nowrap;">주소 검색</button>
+          <input id="addrSearchInput" type="text" placeholder="🔍 전체 주소 입력 (예: 서울 강남구 테헤란로 123)" style="flex:1;font-size:11px;padding:5px;" onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddress();}">
+          <button type="button" onclick="searchAddress()" style="font-size:11px;padding:5px 10px;white-space:nowrap;">검색</button>
+          <button type="button" onclick="openPostcodeSearch()" style="font-size:11px;padding:5px 10px;white-space:nowrap;background:#fee500;border-color:#e0c200;">📮 전국 주소 찾기</button>
         </div>
+        <div style="font-size:10px;color:#999;margin:-4px 0 6px 2px;">※ 도로명을 끝부분만 알 때는 [📮 전국 주소 찾기]를 눌러 검색하세요 (전국 후보가 모두 나옵니다)</div>
         <div id="addrResultList" style="display:none;max-height:170px;overflow-y:auto;border:1px solid #ccc;border-radius:4px;margin-bottom:6px;background:#fff;"></div>
         <div id="kakaoMap" style="width:100%;height:340px;border:1px solid #ccc;border-radius:4px;background:#f3f3f3;display:flex;align-items:center;justify-content:center;color:#888;font-size:11px;">키 입력 후 [지도 활성화]를 누르면 지도가 표시됩니다</div>
         <div id="mapStatus" style="font-size:10.5px;color:#777;margin-top:4px;">ℹ 카카오 디벨로퍼스(developers.kakao.com)에서 무료로 JS 키를 발급받아 입력하세요. 키는 이 브라우저에만 저장됩니다(서버 전송 없음).</div>
@@ -1225,6 +1227,45 @@ function selectAddrResult(i){
   document.getElementById('addrSearchInput').value = r.label;
   hideAddrResultList();
   moveMarkerAndSync(r.y, r.x);
+}
+
+let daumPostcodeLoaded = false;
+
+// [v24 추가] 다음/카카오 우편번호 서비스 팝업 — 도로명을 끝부분만 알아도 전국 후보를 모두 보여주는 공식 주소 검색 UI
+// (카카오 Geocoder.addressSearch / Places.keywordSearch는 시/군/구가 포함된 완전한 주소·장소명만 인식하기 때문에,
+//  "소삼로 47"처럼 끝부분만 입력하면 결과가 없다고 나오는 한계가 있음 — 이 팝업으로 우회)
+function openPostcodeSearch(){
+  if(!kakaoMap){ alert('먼저 [지도 활성화] 버튼을 눌러 지도를 켜주세요.'); return; }
+  loadDaumPostcode(()=>{
+    new daum.Postcode({
+      oncomplete: function(data){
+        const fullAddr = data.roadAddress || data.jibunAddress || data.address;
+        document.getElementById('addrSearchInput').value = fullAddr;
+        document.getElementById('mapStatus').textContent = `⏳ "${fullAddr}" 위치 확인 중...`;
+        geocodeFullAddress(fullAddr);
+      }
+    }).open();
+  });
+}
+
+function loadDaumPostcode(cb){
+  if(daumPostcodeLoaded){ cb(); return; }
+  const script = document.createElement('script');
+  script.src = '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+  script.onload = ()=>{ daumPostcodeLoaded=true; cb(); };
+  script.onerror = ()=>{ document.getElementById('mapStatus').textContent = '⚠ 주소 찾기 팝업 로드 실패 — 인터넷 연결을 확인해 주세요.'; };
+  document.head.appendChild(script);
+}
+
+function geocodeFullAddress(addr){
+  if(!kakaoGeocoder){ document.getElementById('mapStatus').textContent = '⚠ 주소 검색을 사용할 수 없습니다.'; return; }
+  kakaoGeocoder.addressSearch(addr, (result, status)=>{
+    if(status===kakao.maps.services.Status.OK && result[0]){
+      moveMarkerAndSync(result[0].y, result[0].x);
+    } else {
+      document.getElementById('mapStatus').textContent = `⚠ "${addr}"의 좌표를 찾지 못했습니다 — 지도에서 직접 위치를 클릭해 주세요.`;
+    }
+  });
 }
 
 function moveMarkerAndSync(lat, lng){
