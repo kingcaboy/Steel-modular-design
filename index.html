@@ -208,9 +208,10 @@ td.left-td{text-align:left;}
           <button type="button" onclick="loadKakaoSDK()" style="font-size:11px;padding:5px 10px;white-space:nowrap;">지도 활성화</button>
         </div>
         <div style="display:flex;gap:6px;margin-bottom:6px;">
-          <input id="addrSearchInput" type="text" placeholder="🔍 주소/건물명 검색 (예: 강원도 고흥군, 서울 강남구 테헤란로 123)" style="flex:1;font-size:11px;padding:5px;" onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddress();}">
+          <input id="addrSearchInput" type="text" placeholder="🔍 주소/건물명 검색 (예: 소삼로 47, 강남구 테헤란로) — 끝부분만 입력해도 검색됩니다" style="flex:1;font-size:11px;padding:5px;" onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddress();}">
           <button type="button" onclick="searchAddress()" style="font-size:11px;padding:5px 10px;white-space:nowrap;">주소 검색</button>
         </div>
+        <div id="addrResultList" style="display:none;max-height:170px;overflow-y:auto;border:1px solid #ccc;border-radius:4px;margin-bottom:6px;background:#fff;"></div>
         <div id="kakaoMap" style="width:100%;height:340px;border:1px solid #ccc;border-radius:4px;background:#f3f3f3;display:flex;align-items:center;justify-content:center;color:#888;font-size:11px;">키 입력 후 [지도 활성화]를 누르면 지도가 표시됩니다</div>
         <div id="mapStatus" style="font-size:10.5px;color:#777;margin-top:4px;">ℹ 카카오 디벨로퍼스(developers.kakao.com)에서 무료로 JS 키를 발급받아 입력하세요. 키는 이 브라우저에만 저장됩니다(서버 전송 없음).</div>
       </div>
@@ -1136,6 +1137,10 @@ function syncMapToSelection(){
 
 // [v24 추가] 주소/건물명 검색 → 깃발 이동 + 시/도·시/군/구 자동 설정
 // 주소 검색(addressSearch) 실패 시 키워드(장소명) 검색(keywordSearch)으로 한 번 더 시도
+let addrSearchResults = [];
+
+// [v24 수정] 끝자리 도로명만 입력해도 전국 후보를 모두 모아 목록에서 선택 가능하도록 개선
+// (지번/도로명 주소 검색 + 키워드(장소명) 검색을 동시에 호출해 결과를 합침)
 function searchAddress(){
   const q = document.getElementById('addrSearchInput').value.trim();
   if(!q){ alert('검색할 주소 또는 건물명을 입력해 주세요.'); return; }
@@ -1145,28 +1150,81 @@ function searchAddress(){
     return;
   }
   document.getElementById('mapStatus').textContent = `⏳ "${q}" 검색 중...`;
-  kakaoGeocoder.addressSearch(q, (result, status)=>{
-    if(status===kakao.maps.services.Status.OK && result[0]){
-      moveMarkerAndSync(result[0].y, result[0].x);
+  hideAddrResultList();
+
+  let addrDone=false, kwDone=false, merged=[];
+  function finish(){
+    if(!addrDone || !kwDone) return;
+    addrSearchResults = dedupeAddrResults(merged).slice(0,10);
+    if(addrSearchResults.length===0){
+      document.getElementById('mapStatus').textContent = `⚠ "${q}"에 대한 검색 결과가 없습니다 — 다른 키워드로 다시 검색하거나 지도에서 직접 위치를 클릭해 주세요.`;
+    } else if(addrSearchResults.length===1){
+      selectAddrResult(0);
     } else {
-      searchAddressByKeyword(q);
+      showAddrResultList(q);
     }
+  }
+
+  kakaoGeocoder.addressSearch(q, (result, status)=>{
+    if(status===kakao.maps.services.Status.OK){
+      result.forEach(r=>{
+        const label = (r.road_address && r.road_address.address_name) ? r.road_address.address_name : r.address_name;
+        merged.push({label, sub:r.address_name, y:r.y, x:r.x});
+      });
+    }
+    addrDone=true; finish();
+  });
+
+  if(kakao.maps.services.Places){
+    new kakao.maps.services.Places().keywordSearch(q, (result, status)=>{
+      if(status===kakao.maps.services.Status.OK){
+        result.forEach(r=>{
+          merged.push({label:r.place_name, sub:r.address_name, y:r.y, x:r.x});
+        });
+      }
+      kwDone=true; finish();
+    });
+  } else {
+    kwDone=true;
+  }
+}
+
+function dedupeAddrResults(list){
+  const seen=new Set();
+  return list.filter(item=>{
+    const key = Number(item.y).toFixed(5)+','+Number(item.x).toFixed(5);
+    if(seen.has(key)) return false;
+    seen.add(key);
+    return true;
   });
 }
 
-function searchAddressByKeyword(q){
-  if(!kakao.maps.services.Places){
-    document.getElementById('mapStatus').textContent = `⚠ "${q}"에 대한 검색 결과가 없습니다 — 정확한 지번/도로명 주소로 다시 검색하거나 지도에서 직접 위치를 클릭해 주세요.`;
-    return;
-  }
-  const places = new kakao.maps.services.Places();
-  places.keywordSearch(q, (result, status)=>{
-    if(status===kakao.maps.services.Status.OK && result[0]){
-      moveMarkerAndSync(result[0].y, result[0].x);
-    } else {
-      document.getElementById('mapStatus').textContent = `⚠ "${q}"에 대한 검색 결과가 없습니다 — 다른 키워드로 다시 검색하거나 지도에서 직접 위치를 클릭해 주세요.`;
-    }
-  });
+function escapeAddrHtml(s){
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function showAddrResultList(q){
+  const box = document.getElementById('addrResultList');
+  box.innerHTML = addrSearchResults.map((r,i)=>{
+    const label = escapeAddrHtml(r.label);
+    const sub = (r.sub && r.sub!==r.label) ? `<div style="color:#888;font-size:10px;">${escapeAddrHtml(r.sub)}</div>` : '';
+    return `<div onclick="selectAddrResult(${i})" style="padding:6px 8px;font-size:11px;cursor:pointer;border-bottom:1px solid #eee;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#fff'"><div style="font-weight:bold;">${label}</div>${sub}</div>`;
+  }).join('');
+  box.style.display='block';
+  document.getElementById('mapStatus').textContent = `🔎 "${q}" 검색 결과 ${addrSearchResults.length}건 — 목록에서 위치를 선택해 주세요.`;
+}
+
+function hideAddrResultList(){
+  const box = document.getElementById('addrResultList');
+  if(box){ box.style.display='none'; box.innerHTML=''; }
+}
+
+function selectAddrResult(i){
+  const r = addrSearchResults[i];
+  if(!r) return;
+  document.getElementById('addrSearchInput').value = r.label;
+  hideAddrResultList();
+  moveMarkerAndSync(r.y, r.x);
 }
 
 function moveMarkerAndSync(lat, lng){
