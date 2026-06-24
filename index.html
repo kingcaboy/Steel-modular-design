@@ -1085,18 +1085,60 @@ function findSigunguKey(sido, queryName){
   return keys.find(k=>k.startsWith('전체')) || null;
 }
 
-function loadKakaoSDK(){
+function loadKakaoSDK(silent){
   const key = document.getElementById('kakaoKeyInput').value.trim();
-  if(!key){ alert('카카오 디벨로퍼스(developers.kakao.com)에서 발급받은 JavaScript 키를 입력해 주세요.'); return; }
+  if(!key){ if(!silent) alert('카카오 디벨로퍼스(developers.kakao.com)에서 발급받은 JavaScript 키를 입력해 주세요.'); return; }
   localStorage.setItem('KAKAO_JS_KEY', key);
   if(kakaoSdkLoaded){ initKakaoMap(); return; }
   document.getElementById('mapStatus').textContent = '⏳ 지도 SDK 로딩 중...';
-  const script = document.createElement('script');
-  script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(key)}&libraries=services&autoload=false`;
-  script.onload = ()=>{ kakao.maps.load(()=>{ kakaoSdkLoaded=true; initKakaoMap(); }); };
-  script.onerror = ()=>{ document.getElementById('mapStatus').textContent = '⚠ 지도 SDK 로드 실패 — 키가 올바른지, 카카오 디벨로퍼스에서 해당 도메인이 플랫폼으로 등록되어 있는지 확인해 주세요.'; };
-  document.head.appendChild(script);
+  // [v24 수정] 도메인 미등록 시 카카오 SDK가 onerror를 호출하지 않고 그냥 멈추는 경우가 있어
+  // 일정 시간 내에 지도가 뜨지 않으면 도메인 등록 안내 메시지를 띄움
+  const domainCheckTimer = setTimeout(()=>{
+    if(!kakaoMap){
+      document.getElementById('mapStatus').textContent =
+        `⚠ 지도가 활성화되지 않았습니다. 카카오 디벨로퍼스(developers.kakao.com) → 내 애플리케이션 → 플랫폼 → Web 에 현재 주소(${location.protocol}//${location.host})가 등록되어 있는지 확인해 주세요.`;
+    }
+  }, 4000);
+  try{
+    const script = document.createElement('script');
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(key)}&libraries=services&autoload=false`;
+    script.onload = ()=>{
+      try{
+        kakao.maps.load(()=>{
+          kakaoSdkLoaded=true;
+          clearTimeout(domainCheckTimer);
+          try{ initKakaoMap(); }
+          catch(e){
+            document.getElementById('mapStatus').textContent =
+              `⚠ 지도 초기화 실패 — 카카오 디벨로퍼스에서 현재 주소(${location.protocol}//${location.host})가 Web 플랫폼으로 등록되어 있는지 확인해 주세요. (${e.message||e})`;
+          }
+        });
+      }catch(e){
+        clearTimeout(domainCheckTimer);
+        document.getElementById('mapStatus').textContent =
+          `⚠ 지도 SDK 실행 실패 — 카카오 디벨로퍼스에서 현재 주소(${location.protocol}//${location.host})가 Web 플랫폼으로 등록되어 있는지 확인해 주세요. (${e.message||e})`;
+      }
+    };
+    script.onerror = ()=>{
+      clearTimeout(domainCheckTimer);
+      document.getElementById('mapStatus').textContent = '⚠ 지도 SDK 로드 실패 — 키가 올바른지, 카카오 디벨로퍼스에서 해당 도메인이 플랫폼으로 등록되어 있는지 확인해 주세요.';
+    };
+    document.head.appendChild(script);
+  }catch(e){
+    clearTimeout(domainCheckTimer);
+    document.getElementById('mapStatus').textContent = '⚠ 지도 SDK 로드 중 오류가 발생했습니다: ' + (e.message||e);
+  }
 }
+
+// [v24 수정] 키가 이미 입력되어 있으면(하드코딩 또는 직전 입력 저장값) 버튼 클릭 없이 자동으로 지도 활성화
+document.addEventListener('DOMContentLoaded', function(){
+  try{
+    const saved = localStorage.getItem('KAKAO_JS_KEY');
+    const input = document.getElementById('kakaoKeyInput');
+    if(input && saved && !input.value.trim()) input.value = saved;
+    if(input && input.value.trim()) loadKakaoSDK(true);
+  }catch(e){}
+});
 
 function initKakaoMap(){
   const container = document.getElementById('kakaoMap');
