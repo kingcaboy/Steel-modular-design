@@ -1244,6 +1244,13 @@ let daumPostcodeLoaded = false;
 //  "소삼로 47"처럼 끝부분만 입력하면 결과가 없다고 나오는 한계가 있음 — 이 팝업으로 우회)
 function openPostcodeSearch(){
   if(!kakaoMap){ alert('먼저 [지도 활성화] 버튼을 눌러 지도를 켜주세요.'); return; }
+  // [v24 수정] 다음 우편번호 서비스는 file://(html 직접 더블클릭)로 열었을 때는
+  // 도메인 인식이 안 되어 oncomplete 콜백이 동작하지 않는 daum 측 구조적 제약이 있음.
+  // 같은 폴더의 "프로그램_실행.bat"으로 실행(로컬 서버, http://localhost)했을 때만 정상 동작.
+  if(location.protocol === 'file:'){
+    alert('전국 주소 찾기는 html 파일을 직접 더블클릭해서 열었을 때는 다음(Daum) 서비스 제약으로 작동하지 않습니다.\n\n같은 폴더의 "프로그램_실행.bat" 파일을 더블클릭해서 실행해 주세요.\n(처음 한 번만 다르게 실행하면, 이후에는 전국 주소 찾기가 정상 동작합니다)');
+    return;
+  }
   loadDaumPostcode(()=>{
     // [v24 수정] 별도 팝업창(window.open) 대신 같은 페이지 안의 모달 레이어로 임베드
     // file://로 직접 연 페이지에서는 팝업창과 부모창 간 콜백 연결이 끊겨 선택해도 반영이 안 되는 문제가 있어,
