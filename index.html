@@ -122,6 +122,15 @@ td.left-td{text-align:left;}
 </style>
 </head>
 <body>
+<div id="postcodeModalBackdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;" onclick="if(event.target===this) closePostcodeModal()">
+  <div style="background:#fff;border-radius:6px;width:430px;max-width:92vw;height:540px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.35);">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:#1E2761;color:#fff;font-size:13px;font-weight:bold;flex-shrink:0;">
+      <span>📮 전국 주소 찾기</span>
+      <button type="button" onclick="closePostcodeModal()" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;line-height:1;padding:0 4px;">✕</button>
+    </div>
+    <div id="postcodeLayer" style="flex:1;min-height:0;"></div>
+  </div>
+</div>
 <div class="hdr">
   <div style="flex:1;">
     <h1>철골 모듈러 구조 설계</h1>
@@ -1236,15 +1245,31 @@ let daumPostcodeLoaded = false;
 function openPostcodeSearch(){
   if(!kakaoMap){ alert('먼저 [지도 활성화] 버튼을 눌러 지도를 켜주세요.'); return; }
   loadDaumPostcode(()=>{
+    // [v24 수정] 별도 팝업창(window.open) 대신 같은 페이지 안의 모달 레이어로 임베드
+    // file://로 직접 연 페이지에서는 팝업창과 부모창 간 콜백 연결이 끊겨 선택해도 반영이 안 되는 문제가 있어,
+    // embed() 방식으로 같은 문서 안에서 바로 콜백이 실행되도록 변경
+    document.getElementById('postcodeModalBackdrop').style.display='flex';
+    const layer = document.getElementById('postcodeLayer');
+    layer.innerHTML = '';
     new daum.Postcode({
+      width:'100%',
+      height:'100%',
       oncomplete: function(data){
         const fullAddr = data.roadAddress || data.jibunAddress || data.address;
+        closePostcodeModal();
         document.getElementById('addrSearchInput').value = fullAddr;
         document.getElementById('mapStatus').textContent = `⏳ "${fullAddr}" 위치 확인 중...`;
         geocodeFullAddress(fullAddr);
       }
-    }).open();
+    }).embed(layer);
   });
+}
+
+function closePostcodeModal(){
+  const box = document.getElementById('postcodeModalBackdrop');
+  if(box) box.style.display='none';
+  const layer = document.getElementById('postcodeLayer');
+  if(layer) layer.innerHTML = '';
 }
 
 function loadDaumPostcode(cb){
