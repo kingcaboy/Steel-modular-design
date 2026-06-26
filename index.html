@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>철골 모듈러 구조 설계 v24 | KDS 41 30:2022</title>
+<title>철골 모듈러 구조 설계 v25 | KDS 41 30:2022</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Malgun Gothic','맑은 고딕',sans-serif;}
 body{background:#eef2f7;font-size:13px;color:#222;}
@@ -1539,6 +1539,10 @@ function renderSite(){
   const verifiedNote = s.sigungu.includes('●') ? '<span style="color:#2e7d32;font-size:11px;">● 실제 프로젝트 검증값</span>' : '<span style="color:#888;font-size:11px;">KDS 기준 추정값</span>';
   const windExp = s.windExp || document.getElementById('windExp').value || 'C';
   const R = s.R || parseFloat(document.getElementById('Rfactor').value) || 3.0;
+  // [층간변위 허용값 mm 계산] 층고(Hz, mm) 입력 후 구조 검토 실행 시 lastSite.Hz에 저장됨
+  const HzVal = s.Hz || +((document.getElementById('Hz')||{value:3400}).value) || 3400;
+  const windDispAllow = (HzVal/500).toFixed(1);
+  const seismicDispAllow = (HzVal*0.015).toFixed(1);
 
   document.getElementById('site-res').innerHTML = `
 
@@ -1724,7 +1728,7 @@ function renderSite(){
         <tr ${document.getElementById('Rfactor').value==='8.0'?'style="background:#fff8e1;"':''}><td class="left-td">철골 특수 모멘트골조 (SMF)</td><td><strong>8.0</strong></td><td class="left-td">${document.getElementById('Rfactor').value==='8.0'?'← 현재 선택':''}</td></tr>
       </table>
       <div class="info" style="margin-bottom:8px;">
-        층간변위 허용값: 풍하중 = <strong>층고/500</strong> (실무 적용, 100년 재현주기) | 지진하중(IDC ${s.idc}) = 층고 × 0.015 (KDS 41 17 00)
+        층간변위 허용값 (층고 ${HzVal}mm 기준): 풍하중 = 층고/500 (실무 적용, 100년 재현주기) → <strong style="color:#00695c;">${windDispAllow} mm</strong> | 지진하중(IDC ${s.idc}) = 층고 × 0.015 (KDS 41 17 00) → <strong style="color:#c62828;">${seismicDispAllow} mm</strong>
       </div>
       <div class="warn-box" style="margin-bottom:0;">
         ⚡ 설계지진하중 산정 (밑면전단력 V = Cs×W) 및 동적해석은 구조해석 프로그램(ETABS, MIDAS 등)으로 별도 수행이 필요합니다.
@@ -2113,6 +2117,12 @@ function calc(){
       window._autoFixAnc=false;
       return;
     }
+  }
+
+  // [현장 탭] 층고(Hz) 입력값을 lastSite에 저장하고, 허용 변위(mm) 계산값을 즉시 반영
+  if(lastSite && lastSite.sido){
+    lastSite.Hz = Hz;
+    renderSite();
   }
 
   renderSlab();
@@ -2791,6 +2801,9 @@ function buildNgRecommendHtml(type,sections,hasNg){
     </select>
   </div>`;
 }
+
+// ════ [v23] 접합부(이음 볼트/플레이트, 앵커볼트) NG 시 OK 가능 조합 추천 ════
+// 모듈간 이음(JP): 볼트 규격 × 개수 조합 중 볼트전단·지압 모두 OK인 조합 탐색
 function getOkConnOptions(){
   const r=lastR;
   if(!r.Vu_conn) return [];
@@ -2807,11 +2820,12 @@ function getOkConnOptions(){
       const phiRn_bearing = 0.75*(Rn_bearing_end + (n-1)*Rn_bearing_mid);
       const R_bearing = r.Vu_conn/phiRn_bearing;
       const maxDC=Math.max(R_bolt,R_bearing);
-      if(maxDC<1.0){ out.push({key,n,label:`${b.label} × ${n}EA`,maxDC,score:b.Ab*n}); break; }
+      if(maxDC<1.0){ out.push({key,n,label:`${b.label} × ${n}EA`,maxDC,score:b.Ab*n}); break; } // 동일 규격은 최소 개수만 채택
     }
   }
   return out.sort((a,b)=>a.score-b.score);
 }
+// 주각 앵커볼트(BP): 앵커 규격 × 개수 조합 중 인장강도 OK인 조합 탐색
 function getOkAncOptions(){
   const r=lastR;
   if(!r.Pu_col) return [];
