@@ -1541,7 +1541,7 @@ function renderSite(){
   const R = s.R || parseFloat(document.getElementById('Rfactor').value) || 3.0;
   // [층간변위 허용값 mm 계산] 층고(Hz, mm) 입력 후 구조 검토 실행 시 lastSite.Hz에 저장됨
   const HzVal = s.Hz || +((document.getElementById('Hz')||{value:3400}).value) || 3400;
-  const windDispAllow = (HzVal/500).toFixed(1);
+  const windDispAllow = (HzVal/120).toFixed(1);
   const seismicDispAllow = (HzVal*0.015).toFixed(1);
 
   document.getElementById('site-res').innerHTML = `
@@ -1728,7 +1728,7 @@ function renderSite(){
         <tr ${document.getElementById('Rfactor').value==='8.0'?'style="background:#fff8e1;"':''}><td class="left-td">철골 특수 모멘트골조 (SMF)</td><td><strong>8.0</strong></td><td class="left-td">${document.getElementById('Rfactor').value==='8.0'?'← 현재 선택':''}</td></tr>
       </table>
       <div class="info" style="margin-bottom:8px;">
-        층간변위 허용값 (층고 ${HzVal}mm 기준): 풍하중 = 층고/500 (실무 적용, 100년 재현주기) → <strong style="color:#00695c;">${windDispAllow} mm</strong> | 지진하중(IDC ${s.idc}) = 층고 × 0.015 (KDS 41 17 00) → <strong style="color:#c62828;">${seismicDispAllow} mm</strong>
+        층간변위 허용값 (층고 ${HzVal}mm 기준): 풍하중 = 층고/120 (IBC 2022 Table 1604.3 기준, 사내 구조계산서 적용 기준) → <strong style="color:#00695c;">${windDispAllow} mm</strong> | 지진하중(IDC ${s.idc}) = 층고 × 0.015 (KDS 41 17 00) → <strong style="color:#c62828;">${seismicDispAllow} mm</strong>
       </div>
       <div class="warn-box" style="margin-bottom:0;">
         ⚡ 설계지진하중 산정 (밑면전단력 V = Cs×W) 및 동적해석은 구조해석 프로그램(ETABS, MIDAS 등)으로 별도 수행이 필요합니다.
