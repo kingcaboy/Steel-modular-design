@@ -1613,6 +1613,53 @@ function renderSite(){
     </div>
   </div>
 
+  <!-- ★ 지역별 설계하중 검토 (구조계산서/구조안전확인서 첨부 양식) ★ -->
+  <div class="card" style="border:2px solid #5d4037;">
+    <div class="card-hdr" style="background:#5d4037;color:#fff;">
+      🗂 지역별 설계하중 검토 — ${s.sido} ${s.sigungu.replace(' ●','')}
+      &nbsp;${verifiedNote}
+    </div>
+    <div class="card-body" style="padding:14px 16px;">
+      <table style="margin:0;width:100%;">
+        <tr><th style="text-align:left;width:14%;">구분</th><th style="text-align:left;width:14%;">항목</th><th style="text-align:left;">적용 값</th></tr>
+        <tr>
+          <td class="left-td" rowspan="2" style="font-weight:700;vertical-align:top;">지반</td>
+          <td class="left-td">허용지지력</td>
+          <td class="left-td">≥ 150 kN/㎡ (가정 — 지반조사 보고서로 확인 필요)</td>
+        </tr>
+        <tr>
+          <td class="left-td">설계지하수위</td>
+          <td class="left-td">미고려</td>
+        </tr>
+        <tr>
+          <td class="left-td" rowspan="5" style="font-weight:700;vertical-align:top;">하중</td>
+          <td class="left-td">고정하중</td>
+          <td class="left-td">골조 하중 및 모든 영구 설비와 건축 마감 등을 고려하여 산정</td>
+        </tr>
+        <tr>
+          <td class="left-td">활하중</td>
+          <td class="left-td">건축물의 용도 등을 고려하여 산정</td>
+        </tr>
+        <tr>
+          <td class="left-td">풍하중</td>
+          <td class="left-td">기본풍속(Vo)=<strong>${s.Vb}m/s</strong> · 지표면조도구분=<strong>${windExp}</strong> · 중요도계수(Iw)=<strong>${s.IE}</strong> · 풍속비고계수(Kzt)=<strong>1.0</strong>(가정 — 지형 특이사항 없음)</td>
+        </tr>
+        <tr>
+          <td class="left-td">지진하중</td>
+          <td class="left-td">지역계수(A)=<strong>${s.Z}</strong> · 지반분류=<strong>${s.soil}</strong>(가정) · 중요도계수(IE)=<strong>${s.IE}</strong>(내진${s.grade}등급) · 내진설계범주=<strong style="color:${idcColor};">${s.idc}</strong> · Cs=${s.idc}</td>
+        </tr>
+        <tr>
+          <td class="left-td">적설하중(kN/㎡)</td>
+          <td class="left-td">Sf=<strong>${s.Sf}</strong> / Sg=<strong>${s.Sg}</strong> / Cb=<strong>${s.Cb}</strong> / Ce=<strong>${s.Ce}</strong> / Ct=<strong>${s.Ct}</strong> / Cs=<strong>1.0</strong>(평지붕 기준)</td>
+        </tr>
+      </table>
+      <div class="warn-box" style="margin:10px 0 0;">
+        ⚠ 허용지지력·설계지하수위·풍속비고계수(Kzt)·적설하중 경사계수(Cs)는 현장조사 전 가정값입니다. 실제 지반조사 및 현장 여건 확인 후 구조계산서에 반영하세요.
+      </div>
+      <div class="site-ref">※ 구조계산서 및 구조안전확인서는 설계도서 납품 시 제출</div>
+    </div>
+  </div>
+
   <!-- 현장 기본 정보 -->
   <div class="card">
     <div class="card-hdr" style="background:#1a6b3a;color:#fff;">
