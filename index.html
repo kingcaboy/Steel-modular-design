@@ -1666,12 +1666,8 @@ function renderSite(){
           <td class="left-td">Sf=<strong>${s.Sf}</strong> / Sg=<strong>${s.Sg}</strong> / Cb=<strong>${s.Cb}</strong> / Ce=<strong>${s.Ce}</strong> / Ct=<strong>${s.Ct}</strong> / Is=<strong>${s.Is}</strong> / Cs=<strong>1.0</strong>(평지붕 기준, θ≤5°)</td>
         </tr>
         <tr>
-          <td class="left-td">└ 경사지붕 Cs<br><span style="color:#888;font-size:11px;">(θ=${roofTheta}°, 좌측 입력값)</span></td>
-          <td class="left-td">
-            임계각(Cs=1.0 유지 한계) θ₁=<strong>${csTheta1}°</strong> (Ct=${s.Ct} 기준) → θ₁°~70°는 Cs=1.0−(θ−θ₁)/(70−θ₁), θ≥70°는 Cs=0<br>
-            현재 입력 경사각 θ=${roofTheta}° → <strong style="color:#1565c0;">Cs = ${roofCs}</strong> → 경사지붕 설하중 Ss = Sf×Cs = ${s.Sf}×${roofCs} = <strong style="color:#c62828;">${roofSs} kN/m²</strong>
-            <span style="color:#888;">(KDS 41 12 00 4.5.3 그림 4.4-1 표준식 — 정확한 값은 그래프 직접 참조)</span>
-          </td>
+          <td class="left-td">└ 경사지붕 Cs (θ=${roofTheta}°)</td>
+          <td class="left-td">Cs=<strong style="color:#1565c0;">${roofCs}</strong> / Ss=<strong style="color:#c62828;">${roofSs} kN/m²</strong> <span style="color:#888;font-size:11px;">(KDS 41 12 00 4.5.3 표준식)</span></td>
         </tr>
       </table>
       <div class="warn-box" style="margin:10px 0 0;">
